@@ -1,4 +1,4 @@
-
+﻿
 
 # ***1.为什么string设计为不可变***   （不考虑反射特殊场景）
 
@@ -28,9 +28,9 @@
 
 **什么是rpc框架**
 
-![image-20230124190532097](C:\Users\86172\AppData\Roaming\Typora\typora-user-images\image-20230124190532097.png)
+![image-20230124190532097](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230124190532097.png)
 
-![image-20230124190413190](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230124190413190.png)
+![image-20230212133822553](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230212133822553.png)
 
 1.服务集成 RPC 后，服务（这里的服务就是图中的 Provider，服务提供者）启动后会通过 Register（注册）模块，把服务的唯一 ID 和 IP 地址，端口信息等注册到 RPC 框架注册中心（图中的 Registry 部分）。
 2.当调用者（Consumer）想要调用服务的时候，通过 Provider 注册时的的服务唯一 ID 去注册中心查找在线可供调用的服务，返回一个 IP 列表（3.notify 部分）。
@@ -43,7 +43,7 @@
 
 
 
-![image-20230124191224318](C:\Users\86172\AppData\Roaming\Typora\typora-user-images\image-20230124191224318.png)
+![image-20230124191224318](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230124191224318.png)
 
 ```
 newFixedThreadPool用的没有上限的queue，如果任务的处理速度比较慢，当队列占用内存过多有可能发生oom
@@ -81,13 +81,13 @@ newFixedThreadPool用的没有上限的queue，如果任务的处理速度比较
 
 ![image-20230125172511381](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230125172511381.png)
 
-**当任务提交之后，线程池首先会检查当前线程数，如果当前的线程数小于核心线程数（corePoolSize），则新建线程并执行任务。
+`**当任务提交之后，线程池首先会检查当前线程数，如果当前的线程数小于核心线程数（corePoolSize），则新建线程并执行任务。`
 
-当提交的任务不断增加，创建的线程数等于核心线程数（corePoolSize），新增的任务会被添加到 workQueue 任务队列中，等待核心线程执行完当前任务后，重新从 workQueue 中获取任务执行。
+`当提交的任务不断增加，创建的线程数等于核心线程数（corePoolSize），新增的任务会被添加到 workQueue 任务队列中，等待核心线程执行完当前任务后，重新从 workQueue 中获取任务执行。`
 
-当任务数量达到了 workQueue 的最大容量，但是当前线程数小于最大线程数（maximumPoolSize），线程池会在核心线程数（corePoolSize）的基础上继续创非核心建线程来执行任务。
+`当任务数量达到了 workQueue 的最大容量，但是当前线程数小于最大线程数（maximumPoolSize），线程池会在核心线程数（corePoolSize）的基础上继续创非核心建线程来执行任务。`
 
-当任务继续增加，线程池的线程数达到最大线程数（maximumPoolSize），这个时候线程池就会采用拒绝策略来拒绝这些任务。
+`当任务继续增加，线程池的线程数达到最大线程数（maximumPoolSize），这个时候线程池就会采用拒绝策略来拒绝这些任务。`
 
 
 
