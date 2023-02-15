@@ -199,5 +199,66 @@ public void put(E e) throws InterruptedException {
 
 
 
+![image-20230215195143316](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230215195143316.png)
+
+#### synchronized和lock的区别： synchronized编码更简单，锁机制是有jvm维护，在竞争不激烈的情况下性能更好。Lock功能更加强大灵活，竞争激烈时性能更好。
+
+- 性能不一样：    synchronized会根据锁竞争情况 从偏向锁->轻量级锁 -> 重量级锁 升级，编程更简单
+
+- 锁机制不一样：synchronized是在jvm层面实现的，系统会监控锁的释放与否。lock是jdk代码实现的，需要手动释放，在finall块中释放。可以采用非阻塞的方式获取锁
+- synchronized可以用到代码块上，方法上。lock只能写在代码里，不能直接修改方法。
+
+#### Lock支持的功能
+
+- 公平锁 ：Synchronized是非公平锁，Lock支持公平锁，默认非公平锁
+
+- 可中断锁：Reentranlock 提供了lockinterruptibly（）的功能，可中断争夺锁的操作，强锁的时候会检查是否被中断，中断直接抛出异常，退出抢锁。
+
+- 快速反馈锁： Reentranlock 提供了trylock（）和trylock（trytimes）的功能，不等待或限定时间获取锁，更灵活。可以避免死锁的发生。
+
+  ![image-20230215201439468](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230215201439468.png)
+
+# *13 如何实现不可变类*
+
+![image-20230215201602576](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230215201602576.png)
+
+```java
+public final class test {
+
+    private final String name;
+
+    private final Integer age;
+
+    public test(String name, Integer age) {
+        this.name = name;
+        this.age = age;
+    }
 
 
+    public String getName() {
+        return name;
+    }
+
+    public Integer getAge() {
+        return age;
+    }
+}
+```
+
+
+
+record是jdk16新特性
+
+
+
+
+
+# *14 抽象类和接口的区别，类可以继承多个类吗，接口可以继承多个接口吗，类可以实现多个接口吗？
+
+![image-20230215204914013](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230215204914013.png)
+
+
+
+# *15 描述动态代理的实现方式，分别说出相应的优缺点*
+
+​      ![image-20230215205245384](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230215205245384.png)
