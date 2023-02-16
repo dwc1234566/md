@@ -262,3 +262,53 @@ record是jdk16新特性
 # *15 描述动态代理的实现方式，分别说出相应的优缺点*
 
 ​      ![image-20230215205245384](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230215205245384.png)
+
+
+
+# *16 现成的生命周期*
+
+  ![image-20230216190256170](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230216190256170.png)
+
+
+
+
+
+# 17 .*讲讲java的反射机制*
+
+####   什么是反射：
+
+        Reflection(反射) 是 Java 程序开发语言的特征之一，它允许运行中的 Java 程序对自身进行检查。被private封装的资源只能类内部访问，外部是不行的，但反射能直接操作类私有属性。反射可以在运行时获取一个类的所有信息，（包括成员变量，成员方法，构造器等），并且可以操纵类的字段、方法、构造器等部分。要想解剖一个类，必须先要获取到该类的字节码文件对象。而解剖使用的就是Class类中的方法。所以先要获取到每一个字节码文件对应的Class类型的对象。
+     反射就是把java类中的各种成分映射成一个个的Java对象。
+         例如：一个类有：成员变量、方法、构造方法、包等等信息，利用反射技术可以对一个类进行解剖，把一个个组成部分映射成一个个对象。（其实：一个类中这些成员方法、构造方法、在加入类中都有一个类来描述）
+            加载的时候：Class对象的由来是将 .class 文件读入内存，并为之创建一个Class对象。
+    
+ 
+
+#### 获取类
+
+对应的字节码的对象（三种）
+① 调用某个类的对象的getClass()方法，即：对象.getClass()；
+
+```java
+Person p = new Person();
+Class clazz = p.getClass();
+```
+
+​        注意：此处使用的是Object类中的getClass()方法，因为所有类都继承Object类，所以调用Object类中的getClass()方法来获取。
+
+② 调用类的class属性类获取该类对应的Class对象，即：类名.class
+
+```java
+Class clazz = Person.class;
+```
+
+③ 使用Class类中的forName()静态方法（最安全，性能最好）即：Class.forName(“类的全路径”)
+
+```java
+Class clazz = Class.forName("类的全路径");
+```
+
+​       注意：在运行期间，一个类，只有一个Class对象产生。
+
+**![image-20230216193913411](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230216193913411.png)**
+
