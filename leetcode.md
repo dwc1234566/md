@@ -1,8 +1,10 @@
 # 1.两数之和
 
-![image-20230215210417233](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230215210417233.png)
+给定一个整数数组 `nums` 和一个整数目标值 `target`，请你在该数组中找出 **和为目标值** *`target`* 的那 **两个** 整数，并返回它们的数组下标。你可以假设每种输入只会对应一个答案。但是，数组中同一个元素在答案里不能重复出现。
 
-`
+你可以按任意顺序返回答案。
+
+![image-20230215210417233](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230215210417233.png)
 
 ```java
 class Solution {
@@ -82,3 +84,52 @@ class Solution {
 }
 ```
 
+
+
+# *3 无重复字符的最长子串*
+
+​     给定一个字符串 `s` ，请你找出其中不含有重复字符的 **最长子串** 的长度。
+
+![image-20230217165348184](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230217165348184.png)
+
+这道题主要用到思路是：滑动窗口
+
+什么是滑动窗口？
+
+其实就是一个队列,比如例题中的 abcabcbb，进入这个队列（窗口）为 abc 满足题目要求，当再进入 a，队列变成了 abca，这时候不满足要求。所以，我们要移动这个队列！
+
+如何移动？
+
+我们只要把队列的左边的元素移出就行了，直到满足题目要求！
+
+一直维持这样的队列，找出队列出现最长的长度时候，求出解！
+
+时间复杂度：O(n)
+
+```java
+class Solution {
+    public int lengthOfLongestSubstring(String s) {
+        Set<Character> o = new HashSet<Character>();
+        int r = -1 ,res = 0;
+        int n = s.length();
+        for(int i =0; i<n;i++){
+            if(i != 0){
+                o.remove(s.charAt(i-1));
+            }
+            while(r < n-1 && !o.contains(s.charAt(r+1))){
+                o.add(s.charAt(r+1));
+                r++;
+            }
+            res = Math.max(res,r-i+1);
+        }
+
+         return res;
+    }
+}
+```
+
+
+
+# *4 . 寻找两个正序数组的中位数*
+
+ 给定两个大小分别为 `m` 和 `n` 的正序（从小到大）数组 `nums1` 和 `nums2`。请你找出并返回这两个正序数组的 **中位数** 。
