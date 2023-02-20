@@ -133,3 +133,182 @@ class Solution {
 # *4 . 寻找两个正序数组的中位数*
 
  给定两个大小分别为 `m` 和 `n` 的正序（从小到大）数组 `nums1` 和 `nums2`。请你找出并返回这两个正序数组的 **中位数** 。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 数据库 mysql
+
+
+
+## 1.* 组合两个表*
+
+ 表: `Person`
+
+```
++-------------+---------+
+| 列名         | 类型     |
++-------------+---------+
+| PersonId    | int     |
+| FirstName   | varchar |
+| LastName    | varchar |
++-------------+---------+
+personId 是该表的主键列。
+该表包含一些人的 ID 和他们的姓和名的信息。
+```
+
+ 
+
+表: `Address`
+
+```
++-------------+---------+
+| 列名         | 类型    |
++-------------+---------+
+| AddressId   | int     |
+| PersonId    | int     |
+| City        | varchar |
+| State       | varchar |
++-------------+---------+
+addressId 是该表的主键列。
+该表的每一行都包含一个 ID = PersonId 的人的城市和州的信息。
+```
+
+编写一个SQL查询来报告 `Person` 表中每个人的姓、名、城市和州。如果 `personId` 的地址不在 `Address` 表中，则报告为空  `null` 。
+
+
+
+![image-20230220210133125](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230220210133125.png)
+
+```mysql
+select firstName,lastName,city,state
+
+from Person P left join Address a 
+
+on P.personId = a.personId
+```
+
+
+
+
+
+## *2 第二高的薪水*
+
+`Employee` 表：
+
+```
++-------------+------+
+| Column Name | Type |
++-------------+------+
+| id          | int  |
+| salary      | int  |
++-------------+------+
+id 是这个表的主键。
+表的每一行包含员工的工资信息。
+```
+
+ 编写一个 SQL 查询，获取并返回 `Employee` 表中第二高的薪水 。如果不存在第二高的薪水，查询应该返回 `null` 。
+
+查询结果如下例所示。
+
+![image-20230220211538553](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230220211538553.png)
+
+#### 方法一：使用子查询和 `LIMIT` 子句
+
+```mysql
+select (select distinct salary  from Employee
+         order by salary desc 
+         limit 1 OFFSET 1 ) as SecondHighestSalary 
+```
+
+#### 方法二：使用 `IFNULL` 和 `LIMIT` 子句
+
+```mysql
+SELECT
+    IFNULL(
+      (SELECT DISTINCT Salary
+       FROM Employee
+       ORDER BY Salary DESC
+        LIMIT 1 OFFSET 1),
+    NULL) AS SecondHighestSalary
+```
+
+
+
+
+
+## *3 第N高的薪水*
+
+表: `Employee`
+
+```
++-------------+------+
+| Column Name | Type |
++-------------+------+
+| id          | int  |
+| salary      | int  |
++-------------+------+
+Id是该表的主键列。
+该表的每一行都包含有关员工工资的信息。
+```
+
+编写一个SQL查询来报告 `Employee` 表中第 `n` 高的工资。如果没有第 `n` 个最高工资，查询应该报告为 `null` 。
+
+查询结果格式如下所示。
+
+![image-20230220212653350](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230220212653350.png)
+
+```mysql
+CREATE FUNCTION getNthHighestSalary(N INT) RETURNS INT
+BEGIN
+   set N := N-1;
+  RETURN (
+      # Write your MySQL query statement below.
+      SELECT (
+          SELECT distinct salary from Employee
+          order by salary desc
+          limit N,1
+      ) as getNthHighestSalary
+  );
+END
+```
+
