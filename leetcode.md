@@ -312,3 +312,131 @@ BEGIN
 END
 ```
 
+
+
+# *4 分数排名*
+
+表: `Scores`
+
+```
++-------------+---------+
+| Column Name | Type    |
++-------------+---------+
+| id          | int     |
+| score       | decimal |
++-------------+---------+
+Id是该表的主键。
+该表的每一行都包含了一场比赛的分数。Score是一个有两位小数点的浮点值。
+```
+
+编写 SQL 查询对分数进行排序。排名按以下规则计算:
+
+- 分数应按从高到低排列。
+- 如果两个分数相等，那么两个分数的排名应该相同。
+- 在排名相同的分数后，排名数应该是下一个连续的整数。换句话说，排名之间不应该有空缺的数字。
+
+按 `score` 降序返回结果表。
+
+![image-20230221214129359](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230221214129359.png)
+
+```mysql
+select a.score as score,
+(select count(distinct b.score) from Scores b where b.score >= a.score ) as 'rank'
+from Scores a
+order by a.score desc
+
+```
+
+最后的结果包含两个部分，第一部分是降序排列的分数，第二部分是每个分数对应的排名。
+
+第一部分不难写：
+
+```mysql
+select a.Score as Score
+from Scores a
+order by a.Score DESC
+```
+
+比较难的是第二部分。假设现在给你一个分数X，如何算出它的排名Rank呢？ 我们可以先提取出大于等于X的所有分数集合H，将H去重后的元素个数就是X的排名。比如你考了99分，但最高的就只有99分，那么去重之后集合H里就只有99一个元素，个数为1，因此你的Rank为1。 先提取集合H：
+
+```mysql
+select b.Score from Scores b where b.Score >= X;
+```
+
+我们要的是集合H去重之后的元素个数，因此升级为：
+
+```mysql
+select count(distinct b.Score) from Scores b where b.Score >= X as Rank;
+```
+
+而从结果的角度来看，第二部分的Rank是对应第一部分的分数来的，所以这里的X就是上面的a.Score，把两部分结合在一起为：
+
+```mysql
+select a.Score as Score,
+(select count(distinct b.Score) from Scores b where b.Score >= a.Score) as Rank
+from Scores a
+```
+
+
+
+
+
+# *5 连续出现的数字*
+
+```
++-------------+---------+
+| Column Name | Type    |
++-------------+---------+
+| id          | int     |
+| num         | varchar |
++-------------+---------+
+id 是这个表的主键。
+```
+
+编写一个 SQL 查询，查找所有至少连续出现三次的数字。
+
+返回的结果表中的数据可以按 **任意顺序** 排列。
+
+查询结果格式如下面的例子所示：
+
+![image-20230221215636537](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230221215636537.png)
+
+```mysql
+select distinct l1.Num as ConsecutiveNums
+from Logs l1,Logs l2,Logs l3
+where l1.Id = l2.id -1 and l2.Id = l3.Id -1 
+and l1.Num = l2.Num AND l2.Num = l3.Num
+```
+
+
+
+# *6 超过经理收入的员工*
+
+表：`Employee` 
+
+```
++-------------+---------+
+| Column Name | Type    |
++-------------+---------+
+| id          | int     |
+| name        | varchar |
+| salary      | int     |
+| managerId   | int     |
++-------------+---------+
+Id是该表的主键。
+该表的每一行都表示雇员的ID、姓名、工资和经理的ID。
+```
+
+ 编写一个SQL查询来查找收入比经理高的员工。
+
+以 **任意顺序** 返回结果表。
+
+![image-20230221220334773](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230221220334773.png)
+
+```mysql
+select a.name as Employee
+from Employee a,
+Employee b
+where a.managerId = b.id and a.salary > b.salary
+```
+
