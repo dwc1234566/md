@@ -427,3 +427,41 @@ Class clazz = Class.forName("类的全路径");
 
 
 
+# ***22 spring中bean的生命周期***
+
+![流程](https://gitee.com/dwc12/image/raw/master/typoraImage/cfbab93142834a37803ba692fcd8f0fa.png)
+
+##  生命周期的概要流程
+
+Bean 的生命周期概括起来就是 **4 个阶段**：
+
+1. 实例化（Instantiation）
+2. 属性赋值（Populate）
+3. 初始化（Initialization）
+4. 销毁（Destruction）
+
+![img](https://gitee.com/dwc12/image/raw/master/typoraImage/7701eb466f94401b9f08e2c9735d7461.png)
+
+实例化：第 1 步，实例化一个 bean 对象；
+
+属性赋值：第 2 步，为 bean 设置相关属性和依赖；
+
+初始化：第 3~7 步，步骤较多，其中第 5、6 步为初始化操作，第 3、4 步为在初始化前执行，第 7 步在初始化后执行，该阶段结束，才能被用户使用；
+
+销毁：第 8~10步，第8步不是真正意义上的销毁（还没使用呢），而是先在使用前注册了销毁的相关调用接口，为了后面第9、10步真正销毁 bean 时再执行相应的方法。
+
+
+# *23 说说sleep方法和wait方法的区别*
+
+**线程sleep 和wait 的区别：**
+
+1、这两个方法来自不同的类分别是Thread和Object
+
+2、最主要是sleep方法没有释放锁，而wait方法释放了锁，使得其他线程可以使用同步控制块或者方法。
+
+3、wait，notify和notifyAll只能在同步控制方法或者同步控制块里面使用，而sleep可以在任何地方使用（使用范围）
+
+4、sleep必须捕获异常，wait，notify和notifyAll同样需要捕获异常
+
+
+

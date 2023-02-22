@@ -142,6 +142,96 @@ class Solution {
 
 
 
+# *5 整数转罗马数字*
+
+罗马数字包含以下七种字符： `I`， `V`， `X`， `L`，`C`，`D` 和 `M`。
+
+```
+字符          数值
+I             1
+V             5
+X             10
+L             50
+C             100
+D             500
+M             1000
+```
+
+例如， 罗马数字 2 写做 `II` ，即为两个并列的 1。12 写做 `XII` ，即为 `X` + `II` 。 27 写做 `XXVII`, 即为 `XX` + `V` + `II` 。
+
+通常情况下，罗马数字中小的数字在大的数字的右边。但也存在特例，例如 4 不写做 `IIII`，而是 `IV`。数字 1 在数字 5 的左边，所表示的数等于大数 5 减小数 1 得到的数值 4 。同样地，数字 9 表示为 `IX`。这个特殊的规则只适用于以下六种情况：
+
+- `I` 可以放在 `V` (5) 和 `X` (10) 的左边，来表示 4 和 9。
+- `X` 可以放在 `L` (50) 和 `C` (100) 的左边，来表示 40 和 90。 
+- `C` 可以放在 `D` (500) 和 `M` (1000) 的左边，来表示 400 和 900。
+
+给你一个整数，将其转为罗马数字。
+
+ 
+
+**示例 1:**
+
+```
+输入: num = 3
+输出: "III"
+```
+
+**示例 2:**
+
+```
+输入: num = 4
+输出: "IV"
+```
+
+**示例 3:**
+
+```
+输入: num = 9
+输出: "IX"
+```
+
+**示例 4:**
+
+```
+输入: num = 58
+输出: "LVIII"
+解释: L = 50, V = 5, III = 3.
+```
+
+**示例 5:**
+
+```
+输入: num = 1994
+输出: "MCMXCIV"
+解释: M = 1000, CM = 900, XC = 90, IV = 4.
+```
+
+ 贪心算法
+
+```java
+class Solution {
+    public String intToRoman(int num) {
+ int[] nums = {1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1};
+        String[] romans = {"M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"};
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < nums.length; i++) {
+
+            while (num >= nums[i]){
+                sb.append(romans[i]);
+                num -= nums[i];
+            }
+        }
+        return sb.toString();
+    }
+}
+```
+
+
+
+
+
+
+
 
 
 
@@ -439,4 +529,147 @@ from Employee a,
 Employee b
 where a.managerId = b.id and a.salary > b.salary
 ```
+
+
+
+## *7 查找重复的电子邮箱*
+
+编写一个 SQL 查询，查找 `Person` 表中所有重复的电子邮箱。
+
+**示例：**
+
+```
++----+---------+
+| Id | Email   |
++----+---------+
+| 1  | a@b.com |
+| 2  | c@d.com |
+| 3  | a@b.com |
++----+---------+
+```
+
+根据以上输入，你的查询应返回以下结果：
+
+```
++---------+
+| Email   |
++---------+
+| a@b.com |
++---------+
+```
+
+**说明：**所有电子邮箱都是小写字母。
+
+```mysql
+select distinct a.Email
+from Person a, Person b
+where a.Email like b.Email and a.Id != b.Id
+```
+
+方法2
+
+```mysql
+select Email from
+(
+  select Email, count(Email) as num
+  from Person
+  group by Email
+) as statistic
+where num > 1
+```
+
+向 GROUP BY 添加条件的一种更常用的方法是使用 HAVING 子句，该子句更为简单高效。所以我们可以将上面的解决方案重写为：
+
+```mysql
+select Email
+from Person
+group by Email
+having count(Email) > 1;
+```
+
+
+
+
+
+## *2 部门工资最高的员工*
+
+表： `Employee`
+
+```
++--------------+---------+
+| 列名          | 类型    |
++--------------+---------+
+| id           | int     |
+| name         | varchar |
+| salary       | int     |
+| departmentId | int     |
++--------------+---------+
+id是此表的主键列。
+departmentId是Department表中ID的外键。
+此表的每一行都表示员工的ID、姓名和工资。它还包含他们所在部门的ID。
+```
+
+表： `Department`
+
+```
++-------------+---------+
+| 列名         | 类型    |
++-------------+---------+
+| id          | int     |
+| name        | varchar |
++-------------+---------+
+id是此表的主键列。
+此表的每一行都表示一个部门的ID及其名称。
+```
+
+ 编写SQL查询以查找每个部门中薪资最高的员工。
+按 **任意顺序** 返回结果表。
+
+查询结果格式如下例所示。
+
+ 
+
+**示例 1:**
+
+```
+输入：
+Employee 表:
++----+-------+--------+--------------+
+| id | name  | salary | departmentId |
++----+-------+--------+--------------+
+| 1  | Joe   | 70000  | 1            |
+| 2  | Jim   | 90000  | 1            |
+| 3  | Henry | 80000  | 2            |
+| 4  | Sam   | 60000  | 2            |
+| 5  | Max   | 90000  | 1            |
++----+-------+--------+--------------+
+Department 表:
++----+-------+
+| id | name  |
++----+-------+
+| 1  | IT    |
+| 2  | Sales |
++----+-------+
+输出：
++------------+----------+--------+
+| Department | Employee | Salary |
++------------+----------+--------+
+| IT         | Jim      | 90000  |
+| Sales      | Henry    | 80000  |
+| IT         | Max      | 90000  |
++------------+----------+--------+
+解释：Max 和 Jim 在 IT 部门的工资都是最高的，Henry 在销售部的工资最高。
+```
+
+```mysql
+select d.name as Department ,e.name as Employee,e.salary as salary
+from Employee e join Department d on e.departmentId = d.id 
+where (e.departmentId,salary) in
+      (select departmentId ,max(salary)
+       from Employee
+       group by departmentId
+        )
+```
+
+
 
