@@ -591,7 +591,7 @@ having count(Email) > 1;
 
 
 
-## *2 部门工资最高的员工*
+## *8 部门工资最高的员工*
 
 表： `Employee`
 
@@ -672,4 +672,157 @@ where (e.departmentId,salary) in
 ```
 
 
+
+# *9 部门工资前三高的所有员工*
+
+表: `Employee`
+
+```
++--------------+---------+
+| Column Name  | Type    |
++--------------+---------+
+| id           | int     |
+| name         | varchar |
+| salary       | int     |
+| departmentId | int     |
++--------------+---------+
+Id是该表的主键列。
+departmentId是Department表中ID的外键。
+该表的每一行都表示员工的ID、姓名和工资。它还包含了他们部门的ID。
+```
+
+ 
+
+表: `Department`
+
+```
++-------------+---------+
+| Column Name | Type    |
++-------------+---------+
+| id          | int     |
+| name        | varchar |
++-------------+---------+
+Id是该表的主键列。
+该表的每一行表示部门ID和部门名。
+```
+
+公司的主管们感兴趣的是公司每个部门中谁赚的钱最多。一个部门的 **高收入者** 是指一个员工的工资在该部门的 **不同** 工资中 **排名前三** 。
+
+编写一个SQL查询，找出每个部门中 **收入高的员工** 。
+
+以 **任意顺序** 返回结果表。
+
+查询结果格式如下所示。
+
+```
+输入: 
+Employee 表:
++----+-------+--------+--------------+
+| id | name  | salary | departmentId |
++----+-------+--------+--------------+
+| 1  | Joe   | 85000  | 1            |
+| 2  | Henry | 80000  | 2            |
+| 3  | Sam   | 60000  | 2            |
+| 4  | Max   | 90000  | 1            |
+| 5  | Janet | 69000  | 1            |
+| 6  | Randy | 85000  | 1            |
+| 7  | Will  | 70000  | 1            |
++----+-------+--------+--------------+
+Department  表:
++----+-------+
+| id | name  |
++----+-------+
+| 1  | IT    |
+| 2  | Sales |
++----+-------+
+输出: 
++------------+----------+--------+
+| Department | Employee | Salary |
++------------+----------+--------+
+| IT         | Max      | 90000  |
+| IT         | Joe      | 85000  |
+| IT         | Randy    | 85000  |
+| IT         | Will     | 70000  |
+| Sales      | Henry    | 80000  |
+| Sales      | Sam      | 60000  |
++------------+----------+--------+
+解释:
+在IT部门:
+- Max的工资最高
+- 兰迪和乔都赚取第二高的独特的薪水
+- 威尔的薪水是第三高的
+
+在销售部:
+- 亨利的工资最高
+- 山姆的薪水第二高
+- 没有第三高的工资，因为只有两名员工
+```
+
+```mysql
+
+select d.name as  Department,e.name as Employee,e.salary as salary
+from Employee e join Department d 
+on e.departmentId = d.id 
+ where 3  > (select count(distinct e1.salary)
+             from Employee e1    
+             where e1.salary > e.salary 
+              and e.departmentId = e1.departmentId
+             )
+```
+
+
+
+
+
+# *10 上升的温度*
+
+```
++---------------+---------+
+| Column Name   | Type    |
++---------------+---------+
+| id            | int     |
+| recordDate    | date    |
+| temperature   | int     |
++---------------+---------+
+id 是这个表的主键
+该表包含特定日期的温度信息
+```
+
+ 
+
+编写一个 SQL 查询，来查找与之前（昨天的）日期相比温度更高的所有日期的 `id` 。
+
+返回结果 **不要求顺序** 。
+
+查询结果格式如下例。	
+
+```
+输入：
+Weather 表：
++----+------------+-------------+
+| id | recordDate | Temperature |
++----+------------+-------------+
+| 1  | 2015-01-01 | 10          |
+| 2  | 2015-01-02 | 25          |
+| 3  | 2015-01-03 | 20          |
+| 4  | 2015-01-04 | 30          |
++----+------------+-------------+
+输出：
++----+
+| id |
++----+
+| 2  |
+| 4  |
++----+
+解释：
+2015-01-02 的温度比前一天高（10 -> 25）
+2015-01-04 的温度比前一天高（20 -> 30）
+```
+
+```mysql
+SELECT nw.id 
+FROM Weather w,Weather nw
+WHERE DATEDIFF(nw.recordDate,w.recordDate)=1 
+AND w.Temperature < nw.Temperature
+```
 
