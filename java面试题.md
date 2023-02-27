@@ -951,3 +951,36 @@ BASE理论是Basically Available(基本可用)，Soft State（软状态）和Eve
 5.以失败探测为主的，主要是Gossip和phi失败探测算法，当然也包括简单的心跳
 
 6.以弱一致性、因果一致性、顺序一致性为主的，开源尚不多，但大都应用在Linkedin、Twitter、Facebook等公司内部 7当然以异步解耦为主的，还有各类Queue
+
+
+
+
+
+
+
+# 29  自动装箱和拆箱
+
+Java自动装箱和拆箱定义
+       Java 1.5中引入了自动装箱和拆箱机制：
+
+```java
+   (1)自动装箱：把基本类型用它们对应的引用类型包装起来，使它们具有对象的特质，可以调用toString()、hashCode()、getClass()、equals()等方法。
+
+    如下：
+
+    Integer a=3;//这是自动装箱
+
+    其实编译器调用的是static Integer valueOf(int i)这个方法,valueOf(int i)返回一个表示指定int值的Integer对象,那么就变成这样: 
+
+    Integer a=3;   =>    Integer a=Integer.valueOf(3);
+
+    (2)拆箱：跟自动装箱的方向相反，将Integer及Double这样的引用类型的对象重新简化为基本类型的数据。
+
+     如下：
+
+     int i = new Integer(2);//这是拆箱
+
+     编译器内部会调用int intValue()返回该Integer对象的int值
+
+     注意：自动装箱和拆箱是由编译器来完成的，编译器会在编译期根据语法决定是否进行装箱和拆箱动作。
+```
