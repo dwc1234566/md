@@ -145,7 +145,7 @@ public void put(E e) throws InterruptedException {
 
 
 
-# 10 合适的线程数量是多少？  CPU核心数和线程数的关系？**
+# 10 合适的线程数量是多少？  CPU核心数和线程数的关系？
 
 ![image-20230129192040742](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230129192040742.png)
 
@@ -273,7 +273,7 @@ record是jdk16新特性
 
 
 
-# *16 现成的生命周期*
+# *16 线程的生命周期*
 
   ![image-20230216190256170](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230216190256170.png)
 
@@ -1059,3 +1059,36 @@ rannable状态，当io阻塞时一定处于操作系统线程状态的waiting状
 5.java线程和操作系统线程状态是如何对应的：
 见上图表格
 Java线程状态中blocked、waiting、time waiting都是waiting状态，runnable线程在没有获得cpu资源的时候也是waiting状态 rannable状态包含了操作系统的ready和running状态
+
+
+
+
+
+
+
+# 31 序列化和反序列化的含义
+
+序列化：把对象转换为字节序列的过程称为对象的序列化。
+反序列化：把字节序列恢复为对象的过程称为对象的反序列化。
+
+
+
+
+
+# 32 序列化的用途及好处
+
+1.把内存中的对象保存到一个文件中或者数据库中；
+2.网络上传送对象；
+3.通过RMI传输对象；
+好处：
+1.描述数据的传输格式，这样可以方便自己组织数据传输格式，以至于避免一些麻烦及错误
+2.如果是跨平台的序列化，则发送方序列化后，接收方可以用任何其支持的平台反序列化成相应的版本，比如 Java序列化后， 用.net、phython等反序列化
+
+
+
+
+
+# 33 transient关键字对序列化有影响吗
+
+有，transient表示瞬态的，被transient关键字修饰的变量不再能被序列化，一个静态变量不管是否被transient修饰，均不能被序列化。
+
