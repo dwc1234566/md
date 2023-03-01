@@ -114,15 +114,14 @@ class Solution {
         int n = s.length();
         for(int i =0; i<n;i++){
             if(i != 0){
-                o.remove(s.charAt(i-1));
+                o.remove(s.charAt(i-1));  //窗口移动
             }
-            while(r < n-1 && !o.contains(s.charAt(r+1))){
+            while(r < n-1 && !o.contains(s.charAt(r+1))){    //小于数组长度，和set里面没有该字母
                 o.add(s.charAt(r+1));
                 r++;
             }
-            res = Math.max(res,r-i+1);
+            res = Math.max(res,r-i+1);  //当前窗口宽度与前面最大的窗口宽度相比，找到最大的
         }
-
          return res;
     }
 }
@@ -206,7 +205,7 @@ M             1000
 解释: M = 1000, CM = 900, XC = 90, IV = 4.
 ```
 
- 贪心算法
+ 贪心算法  从大的开始向后找
 
 ```java
 class Solution {
@@ -215,7 +214,6 @@ class Solution {
         String[] romans = {"M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"};
         StringBuffer sb = new StringBuffer();
         for (int i = 0; i < nums.length; i++) {
-
             while (num >= nums[i]){
                 sb.append(romans[i]);
                 num -= nums[i];
@@ -232,7 +230,7 @@ class Solution {
 
 
 
-# 6  三树之和
+# 6  三数之和
 
 给你一个整数数组 `nums` ，判断是否存在三元组 `[nums[i], nums[j], nums[k]]` 满足 `i != j`、`i != k` 且 `j != k` ，同时还满足 `nums[i] + nums[j] + nums[k] == 0` 。请
 
@@ -273,7 +271,7 @@ nums[0] + nums[3] + nums[4] = (-1) + 2 + (-1) = 0 。
 解释：唯一可能的三元组和为 0 。
 ```
 
-
+排序单层循环加双指针
 
 ```java
 class Solution {
@@ -313,11 +311,163 @@ class Solution {
 
 
 
+# 7 整数反转
+
+给你一个 32 位的有符号整数 `x` ，返回将 `x` 中的数字部分反转后的结果。
+
+如果反转后整数超过 32 位的有符号整数的范围 `[−231, 231 − 1]` ，就返回 0。
+
+**假设环境不允许存储 64 位整数（有符号或无符号）。**
+
+ 
+
+**示例 1：**
+
+```
+输入：x = 123
+输出：321
+```
+
+**示例 2：**
+
+```
+输入：x = -123
+输出：-321
+```
+
+**示例 3：**
+
+```
+输入：x = 120
+输出：21
+```
+
+**示例 4：**
+
+```
+输入：x = 0
+输出：0
+```
+
+```java
+class Solution {
+    public int reverse(int x) {
+         int res = 0;
+        while (x != 0){
+            int temp = x % 10;
+            int pre = res;
+            res = res*10 +temp;
+            //如果不等于 则表示数据溢出了
+            if (pre != res/10){
+                return 0;
+            }
+            x = x/10;
+        }
+        return res;
+    }
+}
+```
 
 
 
+# 8  四数之和
 
+给你一个由 `n` 个整数组成的数组 `nums` ，和一个目标值 `target` 。请你找出并返回满足下述全部条件且**不重复**的四元组 `[nums[a], nums[b], nums[c], nums[d]]` （若两个四元组元素一一对应，则认为两个四元组重复）：
 
+- `0 <= a, b, c, d < n`
+- `a`、`b`、`c` 和 `d` **互不相同**
+- `nums[a] + nums[b] + nums[c] + nums[d] == target`
+
+你可以按 **任意顺序** 返回答案 。
+
+ 
+
+**示例 1：**
+
+```
+输入：nums = [1,0,-1,0,-2,2], target = 0
+输出：[[-2,-1,1,2],[-2,0,0,2],[-1,0,0,1]]
+```
+
+**示例 2：**
+
+```
+输入：nums = [2,2,2,2,2], target = 8
+输出：[[2,2,2,2]]
+```
+
+ 
+
+**提示：**
+
+- `1 <= nums.length <= 200`
+
+- `-109 <= nums[i] <= 109`
+
+- `-109 <= target <= 109`
+
+  **思路**  双重循环+双指针
+
+  - 在确定第一个数之后，如果 nums[i]+nums[i+1]+nums[i+2]+nums[i+3]>target，说明此时剩下的三个数无论取什么值，四数之和一定大于 target，因此退出第一重循环；
+
+  - 在确定第一个数之后，如果 nums[i]+nums[n−3]+nums[n−2]+nums[n−1]<target，说明此时剩下的三个数无论取什么值，四数之和一定小于 target，因此第一重循环直接进入下一轮，枚举 nums[i+1]；
+
+  - 在确定前两个数之后，如果 nums[i]+nums[j]+nums[j+1]+nums[j+2]>target，说明此时剩下的两个数无论取什么值，四数之和一定大于 target，因此退出第二重循环；
+
+  - 在确定前两个数之后，如果 nums[i]+nums[j]+nums[n−2]+nums[n−1]<target，说明此时剩下的两个数无论取什么值，四数之和一定小于 target，因此第二重循环直接进入下一轮，枚举 nums[j+1]。
+
+    
+
+```java
+class Solution {
+    public List<List<Integer>> fourSum(int[] nums, int target) {
+     List<List<Integer>> res = new ArrayList<>();
+        if (nums == null || nums.length < 4) {
+            return res;
+        }
+        Arrays.sort(nums);
+        int n = nums.length;
+        for (int i = 0; i < n - 3; i++) {
+            if (i >0 && nums[i] == nums[i-1])  continue;   //去重
+            if((nums[i]+nums[i+1]+nums[i+2]+nums[i+3]) > target)  break;  //如果最近的四个数相加都大于目标值，则以后每次相加都大于目标值break
+            if((nums[i]+nums[n-3]+nums[n-2]+nums[n-1]) < target)  continue; //说明此时剩下的三个数无论取什么值，四数之和一定小于 target\textit{target}target，因此第一重循环直接进入下一轮，枚举 nums[i+1]\textit{nums}[i+1]nums[i+1]
+            for (int j = i+1; j < n-2 ; j++) {
+                if (j > i + 1 && nums[j] == nums[j - 1]) {
+                    continue;
+                }
+                if ((long) nums[i] + nums[j] + nums[j + 1] + nums[j + 2] > target) {
+                    break;
+                }
+                if ((long) nums[i] + nums[j] + nums[n - 2] + nums[n - 1] < target) {
+                    continue;
+                }
+                int left = j+1, right = n-1;
+                while (left < right){
+                    int sum = nums[i] + nums[j] + nums[left] + nums[right];
+                    if (sum == target){
+                        res.add(Arrays.asList(nums[i] , nums[j] ,nums[left] , nums[right]));
+                        while (left < right && nums[j] == nums[j+1]){
+                            left++;
+                        }
+                        left++;
+                        while (left < right && nums[right] == nums[right-1]){
+                            right--;
+                        }
+                        right--;
+                    } else if (sum < target) {
+                        left++;
+                    }else {
+                        right--;
+                    }
+                }
+
+            }
+
+        }
+        return res;
+    }
+}
+```
 
 
 
