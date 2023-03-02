@@ -292,7 +292,7 @@ ByteBuffer.allocateDirect(_1MB)
 
 -   强引用
 
-    只有所有的gc root对喜爱那个都不通过强引用引用该对象，该对象才能被垃圾回收
+    只有所有的gc root对象那个都不通过强引用引用该对象，该对象才能被垃圾回收
 
 - 弱引用
 
@@ -397,6 +397,7 @@ ByteBuffer.allocateDirect(_1MB)
 ### 1）   **串行**
 
 - 单线程
+- 收集垃圾时，必须stop the world，使用复制算法。
 - 堆内存较小时，适合个人电脑单核cpu
 - 打开串行垃圾回收器 ![](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230301115326532.png)
 - ![image-20230301115646007](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230301115646007.png)
@@ -414,7 +415,7 @@ ByteBuffer.allocateDirect(_1MB)
 - 多线程
 - 适合堆内存较大的场景，需要多核cpu支持
 - 注重的时，尽可能让单次gc时stop the world时间变短
-
+-  是一种以获得最短回收停顿时间为目标的收集器，**标记清除算法，运作过程：初始标记，并发标记，重新标记，并发清除**，收集结束会产生大量空间碎片。
 -   开启响应时间优先的虚拟机参数    标记清除算法，如果产生的内存碎片太多导致并发失败，则会退化为seriaold做一次串行的老年代垃圾回收
 - ![image-20230301120618150](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230301120618150.png)
 
@@ -520,3 +521,835 @@ ByteBuffer.allocateDirect(_1MB)
   - string.intern()关注的是字符串对象
   - 而字符串去重关注的是char[]
   - 在JVM内部，使用了不同的字符串表
+
+
+
+### 9）  JDK8 u60回收巨型对象
+
+- 一个大对象大于redin的一半时，称之为巨型对象
+- G1不会对巨型对象进行拷贝
+- 回收时被优先考虑
+- G1会跟踪老年代所有incoming引用，这样老年代incoming引用为0的巨型对象就可以在新生代垃圾回收时处理掉
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 6 垃圾回收调优
+
+
+
+### 1）  调优领域
+
+- 内存
+- 锁竞争
+- cpu占用
+- io
+
+
+
+
+
+
+
+### 2）  确定目标
+
+- 低延迟还是高吞吐量，选择合适的垃圾货收器
+- CMS,G1,ZGC
+- ParallelGC
+
+
+
+
+
+### 3） 最快的GC，是不发生GC
+
+- 查看FullGC前后的内存占用
+  - 数据是不是太多？  是不是代码有问题
+  - 数据表示是不是太臃肿？
+    - 对象图
+    - 对象大小
+  - 是否存在内存泄漏？
+
+
+
+
+
+### 4）  新生代调优
+
+- 新生代的特点
+  - 所有的new操作的内存分配非常廉价
+    - TLAB thread-local allocation buffer
+  - 死亡对象的回收代价是0
+  - 大部分对象用过即死
+  - Minor GC的时间远远低于Full Gc
+
+
+
+- 并不是新生代空间越大越好
+
+  - -Xmn
+
+  - 为新生代（nursery）设置堆的初始大小和最大大小（以字节为单位）。附加字母`k`或`K`表示千字节，`m`或`M`表示兆字节，`g`或`G`表示千兆字节。堆的年轻代区域用于new对象。GC 在这个区域比在其他区域更频繁地执行。如果新生代的大小太小，则会执行大量次要垃圾回收。如果大小太大，则只执行完整的垃圾收集，这可能需要很长时间才能完成。**Oracle 建议您保持年轻代的大小大于整个堆大小的 25% 且小于 50%**。以下示例显示如何使用各种单位将年轻代的初始大小和最大大小设置为 256 MB：
+
+    ```cmd
+    -Xmn256m
+    -Xmn262144k
+    -Xmn268435456
+    ```
+
+-    新生代能容纳所有【并发量*（请求-响应）】的数据
+
+- 幸存区大到能保留【当前活跃对象+需要晋升对象】
+
+- 晋升阈值配置得当，让长时间存活的对象尽快晋升
+
+  - **`-XX:MaxTenuringThreshold=threshold`**
+
+    设置用于自适应 GC 大小调整的最大使用期阈值。最大值为 15。并行（吞吐量）收集器的默认值为 15，CMS 收集器的默认值为 6。
+
+    以下示例显示如何将最大任期阈值设置为 10：
+
+    ```cmd
+    -XX:MaxTenuringThreshold=10
+    ```
+
+  - 
+
+  - ```
+    -XX:+PrintTenuringDistribution
+    ```
+
+    启用终身年龄信息的打印。以下是输出示例：
+
+    ```cmd
+    Desired survivor size 48286924 bytes, new threshold 10 (max 10)
+    - age 1: 28992024 bytes, 28992024 total
+    - age 2: 1366864 bytes, 30358888 total
+    - age 3: 1425912 bytes, 31784800 total
+    ...
+    ```
+
+
+
+
+
+
+
+### 5）  老年代调优
+
+以CMS为例
+
+- CMS的老年代内存越大越好
+
+- 先尝试不做调优，如果没有Full GC那么已经  ，否则先尝试调优新生代
+
+- 观察发生Full GC时老年代的占用，将老年代内存预设调大1/4~1/3
+
+  - ```
+    -XX:CMSInitiatingOccupancyFraction=percent
+    ```
+
+    设置开始 CMS 收集周期的老年代占用百分比（0 到 100）。默认值设置为 -1。任何负值（包括默认值）都意味着该选项`-XX:CMSTriggerRatio`用于定义初始占用率的值。
+
+    以下示例显示如何将占用率设置为 20%：
+
+    ```cmd
+    -XX:CMSInitiatingOccupancyFraction=20
+    ```
+
+
+
+
+
+
+
+
+
+# 类加载与字节码技术
+
+
+
+
+
+
+
+## 1 类文件结构
+
+ 
+
+### 1）  魔术
+
+-  0~3个字节，表示它是否是【class】类型文件
+  - ![image-20230302141340105](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230302141340105.png)
+
+
+
+
+
+### 2）  版本
+
+- 4~7个字节，表示类的版本00 34 （52）表示java8
+  - ![image-20230302141519108](C:/Users/86172/AppData/Roaming/Typora/typora-user-images/image-20230302141519108.png)
+
+
+
+
+
+### 3）  常量池
+
+-  8~9字节，表示常量池长度，00 23 （35）表示常量池有#1~#34项，注意#0项不计入，也没有值
+  - ![image-20230302142102755](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230302142102755.png)
+
+
+
+
+
+### 4）  访问标识与继承信息
+
+
+
+
+
+
+
+### 5）  Field信息
+
+
+
+
+
+
+
+### 6）  Method信息
+
+
+
+
+
+
+
+### 7）  附加属性
+
+
+
+
+
+
+
+
+
+
+
+## 2 字节码指令
+
+
+
+### 1） javap工具
+
+- javap工具可以反编译class字节码文件
+
+  - ```cmd
+    javap -v Main.class
+    ```
+
+  - 原始的main.java
+
+    ```java
+    package com.example.demo01;
+    
+    public class Main {
+        public static void main(String[] args) {
+            String a ="a";
+            String b = "b";
+            String c = "ab";
+            String x = a+b;
+        }
+    }
+    ```
+
+    - 编译后的字节码
+
+    - ```cmd
+        Last modified 2023-2-27; size 484 bytes
+        MD5 checksum 10b994507e45d6bac9a4769df80cee5c
+        Compiled from "Main.java"
+      public class com.example.demo01.Main
+        minor version: 0
+        major version: 52
+        flags: ACC_PUBLIC, ACC_SUPER
+      Constant pool:
+         #1 = Methodref          #10.#19        // java/lang/Object."<init>":()V
+         #2 = String             #20            // a
+         #3 = String             #21            // b
+         #4 = String             #22            // ab
+         #5 = Class              #23            // java/lang/StringBuilder
+         #6 = Methodref          #5.#19         // java/lang/StringBuilder."<init>":()V
+         #7 = Methodref          #5.#24         // java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+         #8 = Methodref          #5.#25         // java/lang/StringBuilder.toString:()Ljava/lang/String;
+         #9 = Class              #26            // com/example/demo01/Main
+        #10 = Class              #27            // java/lang/Object
+        #11 = Utf8               <init>
+        #12 = Utf8               ()V
+        #13 = Utf8               Code
+        #14 = Utf8               LineNumberTable
+        #15 = Utf8               main
+        #16 = Utf8               ([Ljava/lang/String;)V
+        #17 = Utf8               SourceFile
+        #18 = Utf8               Main.java
+        #19 = NameAndType        #11:#12        // "<init>":()V
+        #20 = Utf8               a
+        #21 = Utf8               b
+        #22 = Utf8               ab
+        #23 = Utf8               java/lang/StringBuilder
+        #24 = NameAndType        #28:#29        // append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        #25 = NameAndType        #30:#31        // toString:()Ljava/lang/String;
+        #26 = Utf8               com/example/demo01/Main
+        #27 = Utf8               java/lang/Object
+        #28 = Utf8               append
+        #29 = Utf8               (Ljava/lang/String;)Ljava/lang/StringBuilder;
+        #30 = Utf8               toString
+        #31 = Utf8               ()Ljava/lang/String;
+      {
+        public com.example.demo01.Main();
+          descriptor: ()V
+          flags: ACC_PUBLIC
+          Code:
+            stack=1, locals=1, args_size=1
+               0: aload_0
+               1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+               4: return
+            LineNumberTable:
+              line 3: 0
+      
+        public static void main(java.lang.String[]);
+          descriptor: ([Ljava/lang/String;)V
+          flags: ACC_PUBLIC, ACC_STATIC
+          Code:
+            stack=2, locals=5, args_size=1
+               0: ldc           #2                  // String a
+               2: astore_1
+               3: l
+               // String b
+               5: astore_2
+               6: ldc           #4                  // String ab
+               8: astore_3
+               9: new           #5                  // class java/lang/StringBuilder
+              12: dup
+              13: invokespecial #6                  // Method java/lang/StringBuilder."<init>":()V
+              16: aload_1
+              17: invokevirtual #7                  // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+              20: aload_2
+              21: invokevirtual #7                  // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+              24: invokevirtual #8                  // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+              27: astore        4
+              29: return
+            LineNumberTable:
+              line 5: 0
+              line 6: 3
+              line 7: 6
+              line 8: 9
+              line 9: 29
+      }
+      SourceFile: "Main.java"
+      
+      ```
+
+      
+
+### 2） 图解执行流程
+
+####    1）  原始java代码
+
+```java
+package com.example.demo01;
+
+public class h {
+    public static void main(String[] args) {
+        int a = 10;
+        int b = Short.MAX_VALUE +1;
+        int c = a+ b;
+        System.out.println(c);
+    }
+}
+```
+
+#### 2） 编译后的字节码文件
+
+```cmd
+  Last modified 2023-3-2; size 439 bytes
+  MD5 checksum b2bafa9e87bd2a14095eba3a57321c19
+  Compiled from "h.java"
+public class com.example.demo01.h
+  minor version: 0
+  major version: 52
+  flags: ACC_PUBLIC, ACC_SUPER
+Constant pool:
+   #1 = Methodref          #7.#16         // java/lang/Object."<init>":()V
+   #2 = Class              #17            // java/lang/Short
+   #3 = Integer            32768
+   #4 = Fieldref           #18.#19        // java/lang/System.out:Ljava/io/PrintStream;
+   #5 = Methodref          #20.#21        // java/io/PrintStream.println:(I)V
+   #6 = Class              #22            // com/example/demo01/h
+   #7 = Class              #23            // java/lang/Object
+   #8 = Utf8               <init>
+   #9 = Utf8               ()V
+  #10 = Utf8               Code
+  #11 = Utf8               LineNumberTable
+  #12 = Utf8               main
+  #13 = Utf8               ([Ljava/lang/String;)V
+  #14 = Utf8               SourceFile
+  #15 = Utf8               h.java
+  #16 = NameAndType        #8:#9          // "<init>":()V
+  #17 = Utf8               java/lang/Short
+  #18 = Class              #24            // java/lang/System
+  #19 = NameAndType        #25:#26        // out:Ljava/io/PrintStream;
+  #20 = Class              #27            // java/io/PrintStream
+  #21 = NameAndType        #28:#29        // println:(I)V
+  #22 = Utf8               com/example/demo01/h
+  #23 = Utf8               java/lang/Object
+  #24 = Utf8               java/lang/System
+  #25 = Utf8               out
+  #26 = Utf8               Ljava/io/PrintStream;
+  #27 = Utf8               java/io/PrintStream
+  #28 = Utf8               println
+  #29 = Utf8               (I)V
+{
+  public com.example.demo01.h();
+    descriptor: ()V
+    flags: ACC_PUBLIC
+    Code:
+      stack=1, locals=1, args_size=1
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+         4: return
+      LineNumberTable:
+        line 3: 0
+
+  public static void main(java.lang.String[]);
+    descriptor: ([Ljava/lang/String;)V
+    flags: ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=2, locals=4, args_size=1
+         0: bipush        10
+         2: istore_1
+         3: ldc           #3                  // int 32768
+         5: istore_2
+         6: iload_1
+         7: iload_2
+         8: iadd
+         9: istore_3
+        10: getstatic     #4                  // Field java/lang/System.out:Ljava/io/PrintStream;
+        13: iload_3
+        14: invokevirtual #5                  // Method java/io/PrintStream.println:(I)V
+        17: return
+      LineNumberTable:
+        line 5: 0
+        line 6: 3
+        line 7: 6
+        line 8: 10
+        line 9: 17
+}
+SourceFile: "h.java"
+
+```
+
+
+
+#### 3） 常量池载入运行时常量池
+
+- 大于Short.MAX_VALUE时会存入常量池
+
+![image-20230302150041936](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230302150041936.png)
+
+
+
+#### 4）  字节码载入方法区
+
+![image-20230302150310342](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230302150310342.png)
+
+#### 5）  main线程开始运行，分配栈帧内存
+
+- stack = 2 局部操作栈的最大深度  locals = 4 局部变量表的长度
+- ![image-20230302150509086](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230302150509086.png)
+
+
+
+#### 6） 执行引擎开始执行字节码
+
+- bipush 10 将一个byte压入操作栈（其长度回补其四个字节）
+- sipush将一个short压入操作栈
+- ldc将一个int压入操作栈
+- ldc2—w将一个long压入操作栈（分两次压入）
+- 这里小的数字都是和字节码指令一起，超过short范围的数字存入常量池
+
+![image-20230302150858308](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230302150858308.png)
+
+
+
+- istor_1将栈顶数据弹出，存在局部变量表slot1
+- ![image-20230302151118316](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230302151118316.png)
+
+ **iload**
+
+- 将局部变量表中的数据压入栈
+- ![image-20230302151415018](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230302151415018.png)
+
+
+
+
+
+**getstatic #4**
+
+- 在常量池中找#4对应的引用，找到堆中的对象
+- ![image-20230302151610768](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230302151610768.png)
+
+
+
+
+
+**invokevirtual #5**
+
+- 找到常量池#5项
+- 定位到方法区java/io/PrintStream.println:(I)v方法
+- 生成新的栈帧
+- 传递参数，执行新栈帧中的字节码
+- ![image-20230302152002546](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230302152002546.png)
+
+- 执行完毕，弹出栈桢
+
+
+
+### 3）练习分析
+
+```java
+public class h {
+    public static void main(String[] args) {
+        int a = 10;
+        int b = a++ + ++a + a--;
+        System.out.println(a);
+        System.out.println(b);
+    }
+}
+```
+
+最终输出
+
+```
+11
+34
+```
+
+**字节码文件**
+
+- ```cmd
+    Last modified 2023-3-2; size 428 bytes
+    MD5 checksum eaebf53d9c10d6da788e6772b1a8413f
+    Compiled from "h.java"
+  public class com.example.demo01.h
+    minor version: 0
+    major version: 52
+    flags: ACC_PUBLIC, ACC_SUPER
+  Constant pool:
+     #1 = Methodref          #5.#14         // java/lang/Object."<init>":()V
+     #2 = Fieldref           #15.#16        // java/lang/System.out:Ljava/io/PrintStream;
+     #3 = Methodref          #17.#18        // java/io/PrintStream.println:(I)V
+     #4 = Class              #19            // com/example/demo01/h
+     #5 = Class              #20            // java/lang/Object
+     #6 = Utf8               <init>
+     #7 = Utf8               ()V
+     #8 = Utf8               Code
+     #9 = Utf8               LineNumberTable
+    #10 = Utf8               main
+    #11 = Utf8               ([Ljava/lang/String;)V
+    #12 = Utf8               SourceFile
+    #13 = Utf8               h.java
+    #14 = NameAndType        #6:#7          // "<init>":()V
+    #15 = Class              #21            // java/lang/System
+    #16 = NameAndType        #22:#23        // out:Ljava/io/PrintStream;
+    #17 = Class              #24            // java/io/PrintStream
+    #18 = NameAndType        #25:#26        // println:(I)V
+    #19 = Utf8               com/example/demo01/h
+    #20 = Utf8               java/lang/Object
+    #21 = Utf8               java/lang/System
+    #22 = Utf8               out
+    #23 = Utf8               Ljava/io/PrintStream;
+    #24 = Utf8               java/io/PrintStream
+    #25 = Utf8               println
+    #26 = Utf8               (I)V
+  {
+    public com.example.demo01.h();
+      descriptor: ()V
+      flags: ACC_PUBLIC
+      Code:
+        stack=1, locals=1, args_size=1
+           0: aload_0
+           1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+           4: return
+        LineNumberTable:
+          line 3: 0
+  
+    public static void main(java.lang.String[]);
+      descriptor: ([Ljava/lang/String;)V
+      flags: ACC_PUBLIC, ACC_STATIC
+      Code:
+        stack=2, locals=3, args_size=1
+           0: bipush        10
+           2: istore_1
+           3: iload_1         //压入栈
+           4: iinc          1, 1     //自增1
+           7: iinc          1, 1    //自增一
+          10: iload_1               //压入栈
+          11: iadd                  
+          12: iload_1
+          13: iinc          1, -1
+          16: iadd
+          17: istore_2
+          18: getstatic     #2                  // Field java/lang/System.out:Ljava/io/PrintStream;
+          21: iload_1
+          22: invokevirtual #3                  // Method java/io/PrintStream.println:(I)V
+          25: getstatic     #2                  // Field java/lang/System.out:Ljava/io/PrintStream;
+          28: iload_2
+          29: invokevirtual #3                  // Method java/io/PrintStream.println:(I)V
+          32: return
+        LineNumberTable:
+          line 5: 0
+          line 6: 3
+          line 7: 18
+          line 8: 25
+          line 9: 32
+  }
+  SourceFile: "h.java"
+  
+  ```
+
+  
+
+
+
+
+
+### 4）  条件判断指令
+
+| **指令** | **助记符** | **含义**         |
+| -------- | ---------- | ---------------- |
+| 0x99     | ifeq       | 判断是否 == 0    |
+| 0x9a     | ifne       | 判断是否 != 0    |
+| 0x9b     | iflt       | 判断是否 < 0     |
+|          |            |                  |
+| 0x9d     | ifgt       | 判断是否 > 0     |
+| 0x9e     | ifle       | 判断是否 <= 0    |
+| 0x9f     | if_icmpeq  | 两个int 是否 ==  |
+| 0xa0     | if_icmpne  | 两个int 是否 !=  |
+| 0xa1     | if_icmplt  | 两个int 是否 <   |
+| 0xa2     | if_icmpge  | 两个int 是否 >=  |
+| 0xa3     | if_icmpgt  | 两个int 是否 >   |
+| 0xa4     | if_icmple  | 两个int 是否 <=  |
+| 0xa5     | if_acmpeq  | 两个引用是否 ==  |
+| 0xa6     | if_acmpne  | 两个引用是否 !=  |
+| 0xc6     | ifnull     | 判断是否 == null |
+| 0xc7     | ifnonnull  | 判断是否 != null |
+
+**几点说明：**
+
+- byte，short，char 都会按int比较，因为操作数栈都是4字节
+- goto 用来进行跳转到指定行号的字节码
+
+
+
+
+
+### 5）  循环控制指令
+
+**例如下面while循环**
+
+- ```java
+  public class h {
+      public static void main(String[] args) {
+          int a = 0;
+          while (a < 10){
+              a++;
+          }
+      }
+  }
+  ```
+
+- 字节码是：
+
+  ```cmd
+           0: iconst_0      //0赋值给a
+           1: istore_1      //加载到局部变量表
+           2: iload_1       //压入栈
+           3: bipush        10      //10压入栈
+           5: if_icmpge     14      //如果满足跳动14
+           8: iinc          1, 1    //自增一
+          11: goto          2        //跳转到2
+          14: return
+  
+  ```
+
+  
+
+### 6）  练习 结果分析
+
+```java
+public class h {
+    public static void main(String[] args) {
+        int i = 0;
+        int x =0;
+        while (i < 10){
+            x = x++;
+            i++;
+        }
+        System.out.println(x);
+    }
+}
+```
+
+运行结果为0
+
+**下面从字节码来分析**
+
+```cmd
+          0: iconst_0
+         1: istore_1        //0赋值局部变量表 i
+         2: iconst_0      
+         3: istore_2      //0赋值局部变量表 x
+         4: iload_1        //i压入操作栈
+         5: bipush        10      //10压入栈
+         7: if_icmpge     21        //对比成功 跳到21
+        10: iload_2                  //x压入栈
+        11: iinc          2, 1      //局部变量表x自增
+        14: istore_2                //栈中x弹出，覆盖局部变量表
+        15: iinc          1, 1      //i自增
+        18: goto          4         //跳到4
+        21: getstatic     #2                  // Field java/lang/System.out:Ljava/io/PrintStream;
+        24: iload_2
+        25: invokevirtual #3                  // Method java/io/PrintStream.println:(I)V
+        28: return
+
+```
+
+
+
+
+
+### 7）  构造方法
+
+####     1 ）cinit()v
+
+- ```java
+  public class x {
+      static int i = 10;
+  
+      static {
+          i = 20;
+      }
+  
+      static {
+          i = 30;
+      }
+  }
+  ```
+
+**i最终会赋值为30**
+
+- 编译器会按照从上至下的顺序，收集所有static静态代码块和静态成员变量复制的代码，合并为一个特殊的方法
+
+  ```
+  <cinit>()V
+  ```
+
+- 该方法会在类加载的初始化阶段被调用
+
+```cmd
+        0: bipush        10
+         2: putstatic     #2                  // Field i:I
+         5: bipush        20
+         7: putstatic     #2                  // Field i:I
+        10: bipush        30
+        12: putstatic     #2                  // Field i:I
+```
+
+
+
+#### 2） init
+
+- 编译器会按照从上至下的顺序，收集所有{}代码块和成员变量复制的代码，形成新的构造方法，但原始的构造方法的代码总在最后
+
+
+
+
+
+
+
+### 8） 方法调用
+
+**看一下几种方法调用对应的字节码指令**
+
+```java
+public class demo01 {
+    public demo01(){}
+
+    private void test1(){}
+
+    private final void test2(){}
+
+    public void test3(){}
+
+    public static void test4(){}
+
+
+    public static void main(String[] args) {
+        demo01 d = new demo01();
+        d.test1();
+        d.test2();
+        d.test3();
+        d.test4();
+        demo01.test4();
+    }
+
+}
+```
+
+**字节码文件**
+
+```cmd
+         0: new           #2                  // class com/example/classma/demo01  分配成功将引用放入操作数栈
+         3: dup                               //将操作数栈引用复制一份
+         4: invokespecial #3                  // Method "<init>":()V   //构造方法invokespecial
+         7: astore_1
+         8: aload_1
+         9: invokespecial #4                  // Method test1:()V    //私有 invokespecial
+        12: aload_1
+        13: invokespecial #5                  // Method test2:()V   //final修饰的也是 invokespecial
+        16: aload_1
+        17: invokevirtual #6                  // Method test3:()V   //public方法invokevirtual  动态绑定
+        20: aload_1
+        21: pop
+        22: invokestatic  #7                  // Method test4:()V   //静态方法 invokestatic
+        25: invokestatic  #7                  // Method test4:()V
+        28: return
+
+```
+
+
+
+
+
+### 9） 多态的原理
+
+- 当执行invokevirtual指令时
+  1. 先通过栈帧中的对象引用找到对象
+  2. 分析对象头，找到对象的实际class
+  3. Class结构中有vtable(虚方法表），它在类加载的链接阶段就已经根据方法的重写规则生成好的
+  4. 查表得到方法的具体地址
+  5. 执行方法的字节码
