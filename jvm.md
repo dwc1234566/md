@@ -686,7 +686,7 @@ ByteBuffer.allocateDirect(_1MB)
 
  
 
-### 1）  魔术
+### 1）  魔树
 
 -  0~3个字节，表示它是否是【class】类型文件
   - ![image-20230302141340105](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230302141340105.png)
@@ -1353,3 +1353,1002 @@ public class demo01 {
   3. Class结构中有vtable(虚方法表），它在类加载的链接阶段就已经根据方法的重写规则生成好的
   4. 查表得到方法的具体地址
   5. 执行方法的字节码
+
+
+
+
+
+
+
+### 10） 异常处理
+
+#### 1） **try-catch**
+
+```java
+public class demo03 {
+    public static void main(String[] args) {
+        int i = 0;
+        try {
+          i = 10;
+        }catch (Exception e){
+            i  = 20;
+        }
+    }
+}
+```
+
+**字节码文件**
+
+```java
+ public static void main(java.lang.String[]);
+    descriptor: ([Ljava/lang/String;)V
+    flags: ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=1, locals=3, args_size=1
+         0: iconst_0
+         1: istore_1
+         2: bipush        10
+         4: istore_1
+         5: goto          12  //没有异常直接return
+         8: astore_2
+         9: bipush        20
+        11: istore_1
+        12: return
+      Exception table:             //异常表
+         from    to  target type
+             2     5     8   Class java/lang/Exception   //检测2至4行 如果发生的异常与该异常匹配则进入target
+      LineNumberTable:
+        line 5: 0
+        line 7: 2
+        line 10: 5
+        line 8: 8
+        line 9: 9
+        line 11: 12
+      StackMapTable: number_of_entries = 2
+        frame_type = 255 /* full_frame */
+          offset_delta = 8
+          locals = [ class "[Ljava/lang/String;", int ]
+          stack = [ class java/lang/Exception ]
+        frame_type = 3 /* same */
+}
+
+```
+
+
+
+
+
+
+
+#### 2） try-catc-finally
+
+```java
+public class demo04 {
+    public static void main(String[] args) {
+        int i = 10;
+        try {
+            i = 20;
+        }catch (Exception e){
+            i = 30;
+        }finally {
+            i = 40;
+        }
+    }
+}
+```
+
+**字节码**
+
+```java
+ public static void main(java.lang.String[]);
+    descriptor: ([Ljava/lang/String;)V
+    flags: ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=1, locals=4, args_size=1
+         0: bipush        10
+         2: istore_1       
+         3: bipush        20
+         5: istore_1     
+         6: bipush        40
+         8: istore_1        
+         9: goto          28
+        12: astore_2
+        13: bipush        30
+        15: istore_1       
+        16: bipush        40
+        18: istore_1
+        19: goto          28
+        22: astore_3
+        23: bipush        40
+        25: istore_1
+        26: aload_3
+        27: athrow
+        28: return
+      Exception table:
+         from    to  target type
+             3     6    12   Class java/lang/Exception
+             3     6    22   any             //对应着其他异常例如error
+            12    16    22   any                  //对应着其他异常例如error
+      LineNumberTable:
+        line 5: 0
+        line 7: 3
+        line 11: 6
+        line 12: 9
+        line 8: 12
+        line 9: 13
+        line 11: 16
+        line 12: 19
+        line 11: 22
+        line 12: 26
+        line 13: 28
+      StackMapTable: number_of_entries = 3
+        frame_type = 255 /* full_frame */
+          offset_delta = 12
+          locals = [ class "[Ljava/lang/String;", int ]
+          stack = [ class java/lang/Exception ]
+        frame_type = 73 /* same_locals_1_stack_item */
+          stack = [ class java/lang/Throwable ]
+        frame_type = 5 /* same */
+}
+
+```
+
+- 可以看到finall中的代码被复制了三份，分别放入try，catch，及catch剩余的异常类型保证finall中的代码一定会执行
+
+
+
+
+
+
+
+
+
+### 11） 练习 - finally面试题
+
+####    finally出现了return
+
+- ​    看下面代码
+
+- ```java
+  public class demo05 {
+      public static void main(String[] args) {
+          int res = test();
+          System.out.println(res);
+      }
+  
+      public static int test(){
+          try {
+              return 10;
+          }finally {
+              return 20;
+          }
+      }
+  }
+  ```
+
+- 最终输出 20 为什么呢？ 我们看下字节码
+
+- ```java
+   public static void main(java.lang.String[]);
+      descriptor: ([Ljava/lang/String;)V
+      flags: ACC_PUBLIC, ACC_STATIC
+      Code:
+        stack=2, locals=2, args_size=1
+           0: invokestatic  #2                  // Method test:()I
+           3: istore_1
+           4: getstatic     #3                  // Field java/lang/System.out:Ljava/io/PrintStream;
+           7: iload_1
+           8: invokevirtual #4                  // Method java/io/PrintStream.println:(I)V
+          11: return
+        LineNumberTable:
+          line 5: 0
+          line 6: 4
+          line 7: 11
+    
+    public static int test();
+      descriptor: ()I
+      flags: ACC_PUBLIC, ACC_STATIC
+      Code:
+        stack=1, locals=2, args_size=0
+           0: bipush        10
+           2: istore_0                    //将10放入局部变量表第0个槽位
+           3: bipush        20
+           5: ireturn                     //返回栈顶值20
+           6: astore_1                     
+           7: bipush        20            //20放入栈顶
+           9: ireturn                       //依然返回20
+        Exception table:
+           from    to  target type
+               0     3     6   any
+        LineNumberTable:
+          line 12: 0
+          line 14: 3
+        StackMapTable: number_of_entries = 1
+          frame_type = 70 /* same_locals_1_stack_item */
+            stack = [ class java/lang/Throwable ]
+  }
+  
+  ```
+
+  - 由于finall中的ireturn被插入了所有可能的流程，因此返回结果肯定以finall的为准
+
+  - 至于字节码第2行，似乎没啥用，看下个例子
+
+  - 跟上例中的finally相比，发现没有athrow了，这告诉我们  如果在finall中出现了return，会吞掉异常😱😱😱，可以试一下下面代码
+
+  - ```java
+    public class demo06 {
+        public static void main(String[] args) {
+            int i = test();
+            System.out.println(i);
+        }
+    
+    
+        public static int test(){
+            int i =10;
+            try {
+                i = i/0;
+            }finally {
+                System.out.println("异常");
+                return i;
+            }
+        }
+    
+    }
+    ```
+
+    - 这个代码就不会抛出异常，因为在处理any异常时最终有return忽略了异常
+
+
+
+
+
+### 12） synchronized
+
+-   我们是如何保证枷锁之后出现异常也能解锁的呢
+
+- ```java
+  public class demo07 {
+      public static void main(String[] args) {
+          Object o = new Object();
+          synchronized (o){
+              System.out.println("ok");
+          }
+      }
+  }
+  ```
+
+  
+
+- 看下字节码
+
+- ```java
+  
+    public static void main(java.lang.String[]);
+      descriptor: ([Ljava/lang/String;)V
+      flags: ACC_PUBLIC, ACC_STATIC
+      Code:
+        stack=2, locals=4, args_size=1
+           0: new           #2                  // class java/lang/Object
+           3: dup                               //将对象的引用复制一份
+           4: invokespecial #1                  // Method java/lang/Object."<init>":()V  初始化方法
+           7: astore_1                           //0引用->0
+           8: aload_1                           //o放入栈顶
+           9: dup                               //复制o引用 一份加锁 一份解锁
+          10: astore_2                          //复制的o引用放入slot2
+          11: monitorenter                      //加锁  monitorexit（o引用）
+          12: getstatic     #3                  // Field java/lang/System.out:Ljava/io/PrintStream;
+          15: ldc           #4                  // String ok
+          17: invokevirtual #5                  // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+          20: aload_2
+          21: monitorexit                       //解锁 解锁monitorexit（o引用）
+          22: goto          30                  //返回
+          25: astore_3                          //any-> slot3
+          26: aload_2                           //o引用入栈
+          27: monitorexit                       //解锁monitorexit（o引用）
+          28: aload_3
+          29: athrow                            //抛出any
+          30: return
+        Exception table:
+           from    to  target type
+              12    22    25   any         //12-21 发生异常  跳转25
+              25    28    25   any           //25-27 发生异常  跳转25
+        LineNumberTable:
+          line 5: 0
+          line 6: 8
+          line 7: 12
+          line 8: 20
+          line 9: 30
+        StackMapTable: number_of_entries = 2
+          frame_type = 255 /* full_frame */
+            offset_delta = 25
+            locals = [ class "[Ljava/lang/String;", class java/lang/Object, class java/lang/Object ]
+            stack = [ class java/lang/Throwable ]
+          frame_type = 250 /* chop */
+            offset_delta = 4
+  }
+  
+  ```
+
+  
+
+- 方法级别的synchronized不会再字节码中有所体现
+
+
+
+
+
+
+
+
+
+## 3  编译期处理
+
+
+
+**所谓语法糖，其实就是指java编译器把*.java源码编译为*.class字节码的过程中，自动生成和转换一些代码，主要是为了减轻程序员的负担，算是java编译器给我们的一个额外福利**
+
+
+
+
+
+### 3.1  默认构造器
+
+```java
+public class h{
+
+}
+```
+
+编译成class后的代码
+
+```java
+ public class h{
+   //这个无参构造是编译器给我们加上的
+    public h(){
+       super();
+    }
+ }
+```
+
+
+
+
+
+### 3.2 自动装箱和拆箱
+
+```java
+public class Candy1 {
+    public static void main(String[] args) {
+        Integer x = 1;
+        int y =x;
+    }
+}
+```
+
+编译成class后的代码
+
+```java
+public class Candy1 {
+    public Candy1() {
+    }
+
+    public static void main(String[] var0) {
+        Integer var1 = Integer.valueOf(1);
+        int var2 = var1.intValue();
+    }
+}
+```
+
+
+
+
+
+
+
+### 3.3  泛型集合取值
+
+
+
+泛型是在JDK5 开始加入的新特性，但在编译泛型代码后会执行泛型擦除的动作，即泛型信息在编译成字节码之后就丢失了，实际上类型当作了Object类型来处理 	
+
+ 
+
+```java
+public class Candy2 {
+    public static void main(String[] args) {
+        List<Integer> l = new ArrayList<>();
+        l.add(10);     //  实际上调用了list.add(Obiect e)
+        Integer integer = l.get(0); //实际上是Obiect O = l.get(0)
+    }
+}
+```
+
+字节码文件
+
+```java
+  Last modified 2023-3-3; size 516 bytes
+  MD5 checksum 30e51efbaf040d90c03e3cbbeddf25ef
+  Compiled from "Candy2.java"
+public class com.example.candy.Candy2
+  minor version: 0
+  major version: 52
+  flags: ACC_PUBLIC, ACC_SUPER
+Constant pool:
+   #1 = Methodref          #9.#18         // java/lang/Object."<init>":()V
+   #2 = Class              #19            // java/util/ArrayList
+   #3 = Methodref          #2.#18         // java/util/ArrayList."<init>":()V
+   #4 = Methodref          #7.#20         // java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+   #5 = InterfaceMethodref #21.#22        // java/util/List.add:(Ljava/lang/Object;)Z
+   #6 = InterfaceMethodref #21.#23        // java/util/List.get:(I)Ljava/lang/Object;
+   #7 = Class              #24            // java/lang/Integer
+   #8 = Class              #25            // com/example/candy/Candy2
+   #9 = Class              #26            // java/lang/Object
+  #10 = Utf8               <init>
+  #11 = Utf8               ()V
+  #12 = Utf8               Code
+  #13 = Utf8               LineNumberTable
+  #14 = Utf8               main
+  #15 = Utf8               ([Ljava/lang/String;)V
+  #16 = Utf8               SourceFile
+  #17 = Utf8               Candy2.java
+  #18 = NameAndType        #10:#11        // "<init>":()V
+  #19 = Utf8               java/util/ArrayList
+  #20 = NameAndType        #27:#28        // valueOf:(I)Ljava/lang/Integer;
+  #21 = Class              #29            // java/util/List
+  #22 = NameAndType        #30:#31        // add:(Ljava/lang/Object;)Z
+  #23 = NameAndType        #32:#33        // get:(I)Ljava/lang/Object;
+  #24 = Utf8               java/lang/Integer
+  #25 = Utf8               com/example/candy/Candy2
+  #26 = Utf8               java/lang/Object
+  #27 = Utf8               valueOf
+  #28 = Utf8               (I)Ljava/lang/Integer;
+  #29 = Utf8               java/util/List
+  #30 = Utf8               add
+  #31 = Utf8               (Ljava/lang/Object;)Z
+  #32 = Utf8               get
+  #33 = Utf8               (I)Ljava/lang/Object;
+{
+  public com.example.candy.Candy2();
+    descriptor: ()V
+    flags: ACC_PUBLIC
+    Code:
+      stack=1, locals=1, args_size=1
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+         4: return
+      LineNumberTable:
+        line 6: 0
+
+  public static void main(java.lang.String[]);
+    descriptor: ([Ljava/lang/String;)V
+    flags: ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=2, locals=3, args_size=1
+         0: new           #2                  // class java/util/ArrayList
+         3: dup
+         4: invokespecial #3                  // Method java/util/ArrayList."<init>":()V
+         7: astore_1
+         8: aload_1
+         9: bipush        10
+        11: invokestatic  #4                  // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;  泛型包装
+        14: invokeinterface #5,  2            // InterfaceMethod java/util/List.add:(Ljava/lang/Object;)Z
+        19: pop
+        20: aload_1
+        21: iconst_0
+        22: invokeinterface #6,  2            // InterfaceMethod java/util/List.get:(I)Ljava/lang/Object;
+        27: checkcast     #7                  // class java/lang/Integer   泛型转换
+        30: astore_2
+        31: return
+      LineNumberTable:
+        line 8: 0
+        line 9: 8
+        line 10: 20
+        line 11: 31
+}
+
+```
+
+- 类型擦除的是字节码上的信息，可是看到LocalVariableTypeTable仍然保留了方法参数泛型信息
+
+
+
+
+
+### 3.4  可变参数
+
+```java
+public void tset(String... args){
+
+}
+//会被编译为  
+public void tset(String[] args){
+
+}
+//数组长度为传入参数的数量
+```
+
+
+
+
+
+### 3.5  foreach循环
+
+```java
+public class Candy3 {
+    public static void main(String[] args) {
+        int[] array = {0,1,2,3,4,5};  
+        for (int i : array) {
+            System.out.println(i);
+        }
+    }
+}
+```
+
+字节码文件
+
+```java
+public class Candy3 {
+    public Candy3() {
+    }
+
+    public static void main(String[] var0) {
+        int[] var1 = new int[]{0, 1, 2, 3, 4, 5};  //新建数组语法糖
+        int[] var2 = var1;
+        int var3 = var1.length;
+
+        for(int var4 = 0; var4 < var3; ++var4) {  //遍历语法糖
+            int var5 = var2[var4];
+            System.out.println(var5);
+        }
+
+    }
+}
+```
+
+集合遍历呢
+
+```java
+public class Candy4 {
+    public static void main(String[] args) {
+        ArrayList<Integer> list = new ArrayList<>();
+        list.add(0);
+        list.add(1);
+        list.add(2);
+        list.add(3);
+        list.add(4);
+        for (Integer integer : list) {
+            System.out.println(integer);
+        }
+    }
+}
+```
+
+字节码
+
+```java
+public class Candy4 {
+    public Candy4() {
+    }
+
+    public static void main(String[] var0) {
+        ArrayList var1 = new ArrayList();
+        var1.add(0);
+        var1.add(1);
+        var1.add(2);
+        var1.add(3);
+        var1.add(4);
+        Iterator var2 = var1.iterator();   //实际编译为Iterator遍历
+
+        while(var2.hasNext()) {
+            Integer var3 = (Integer)var2.next();
+            System.out.println(var3);
+        }
+
+    }
+}
+```
+
+
+
+
+
+
+
+### 3.6  switch 字符串
+
+从jdk1.7开始switch可以用于字符串和枚举类，这个功能其实也是语法糖，例如：
+
+```java
+public class Candy5 {
+
+    public void choose(String str){
+        switch (str){
+            case "hello" :{
+                System.out.println("h");
+            }
+            case "world" :{
+                System.out.println("w");
+            }
+        }
+    }
+}
+```
+
+会被编译器转换为
+
+![image-20230303113345102](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230303113345102.png)
+
+- 可以看到，执行了两遍switch，第一遍是根据字符串的hashcode和equals将字符串的抓换响应byte类型，第二遍才是利用byte执行进行比较
+- 为什么第一遍时必须比较hashcode，又利用equals比较呢？hashcode是为了提高效率，减少可能的比较；而equals是为了防止hashcode冲突，例如BM和c，这两个字符串的hashcode值都是2123
+
+
+
+
+
+
+
+### 3.7 switch枚举
+
+```java
+enum Sex {
+    MALE,
+    FEMALE
+}
+public class Candy6 {
+   public static void fool(Sex sex){
+       switch (sex){
+           case MALE:
+               System.out.println("男");
+               break;
+           case FEMALE:
+               System.out.println("女");
+               break;
+       }
+   }
+}
+```
+
+转换后的代码
+
+![image-20230303141415711](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230303141415711.png)
+
+
+
+
+
+
+
+### 3.8 枚举类字节码
+
+```java
+enum Sex {
+    MALE,
+    FEMALE
+}
+```
+
+
+
+字节码
+
+```java
+  Last modified 2023-3-3; size 848 bytes
+  MD5 checksum bbe69fa903f3a77c0653be35dfa25036
+  Compiled from "Candy6.java"
+final class com.example.candy.Sex extends java.lang.Enum<com.example.candy.Sex>
+  minor version: 0
+  major version: 52
+  flags: ACC_FINAL, ACC_SUPER, ACC_ENUM
+Constant pool:
+   #1 = Fieldref           #4.#32         // com/example/candy/Sex.$VALUES:[Lcom/example/candy/Sex;
+   #2 = Methodref          #33.#34        // "[Lcom/example/candy/Sex;".clone:()Ljava/lang/Object;
+   #3 = Class              #17            // "[Lcom/example/candy/Sex;"
+   #4 = Class              #35            // com/example/candy/Sex
+   #5 = Methodref          #12.#36        // java/lang/Enum.valueOf:(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;
+   #6 = Methodref          #12.#37        // java/lang/Enum."<init>":(Ljava/lang/String;I)V
+   #7 = String             #13            // MALE
+   #8 = Methodref          #4.#37         // com/example/candy/Sex."<init>":(Ljava/lang/String;I)V
+   #9 = Fieldref           #4.#38         // com/example/candy/Sex.MALE:Lcom/example/candy/Sex;
+  #10 = String             #15            // FEMALE
+  #11 = Fieldref           #4.#39         // com/example/candy/Sex.FEMALE:Lcom/example/candy/Sex;
+  #12 = Class              #40            // java/lang/Enum
+  #13 = Utf8               MALE
+  #14 = Utf8               Lcom/example/candy/Sex;
+  #15 = Utf8               FEMALE
+  #16 = Utf8               $VALUES
+  #17 = Utf8               [Lcom/example/candy/Sex;
+  #18 = Utf8               values
+  #19 = Utf8               ()[Lcom/example/candy/Sex;
+  #20 = Utf8               Code
+  #21 = Utf8               LineNumberTable
+  #22 = Utf8               valueOf
+  #23 = Utf8               (Ljava/lang/String;)Lcom/example/candy/Sex;
+  #24 = Utf8               <init>
+  #25 = Utf8               (Ljava/lang/String;I)V
+  #26 = Utf8               Signature
+  #27 = Utf8               ()V
+  #28 = Utf8               <clinit>
+  #29 = Utf8               Ljava/lang/Enum<Lcom/example/candy/Sex;>;
+  #30 = Utf8               SourceFile
+  #31 = Utf8               Candy6.java
+  #32 = NameAndType        #16:#17        // $VALUES:[Lcom/example/candy/Sex;
+  #33 = Class              #17            // "[Lcom/example/candy/Sex;"
+  #34 = NameAndType        #41:#42        // clone:()Ljava/lang/Object;
+  #35 = Utf8               com/example/candy/Sex
+  #36 = NameAndType        #22:#43        // valueOf:(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;
+  #37 = NameAndType        #24:#25        // "<init>":(Ljava/lang/String;I)V
+  #38 = NameAndType        #13:#14        // MALE:Lcom/example/candy/Sex;
+  #39 = NameAndType        #15:#14        // FEMALE:Lcom/example/candy/Sex;
+  #40 = Utf8               java/lang/Enum
+  #41 = Utf8               clone
+  #42 = Utf8               ()Ljava/lang/Object;
+  #43 = Utf8               (Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;
+{
+  public static final com.example.candy.Sex MALE;
+    descriptor: Lcom/example/candy/Sex;
+    flags: ACC_PUBLIC, ACC_STATIC, ACC_FINAL, ACC_ENUM
+
+  public static final com.example.candy.Sex FEMALE;
+    descriptor: Lcom/example/candy/Sex;     
+    flags: ACC_PUBLIC, ACC_STATIC, ACC_FINAL, ACC_ENUM
+
+  public static com.example.candy.Sex[] values();
+    descriptor: ()[Lcom/example/candy/Sex;
+    flags: ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=1, locals=0, args_size=0
+         0: getstatic     #1                  // Field $VALUES:[Lcom/example/candy/Sex;
+         3: invokevirtual #2                  // Method "[Lcom/example/candy/Sex;".clone:()Ljava/lang/Object;
+         6: checkcast     #3                  // class "[Lcom/example/candy/Sex;"
+         9: areturn
+      LineNumberTable:
+        line 3: 0
+
+  public static com.example.candy.Sex valueOf(java.lang.String);
+    descriptor: (Ljava/lang/String;)Lcom/example/candy/Sex;
+    flags: ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=2, locals=1, args_size=1
+         0: ldc           #4                  // class com/example/candy/Sex
+         2: aload_0
+         3: invokestatic  #5                  // Method java/lang/Enum.valueOf:(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;
+         6: checkcast     #4                  // class com/example/candy/Sex
+         9: areturn
+      LineNumberTable:
+        line 3: 0
+
+  static {};
+    descriptor: ()V
+    flags: ACC_STATIC
+    Code:
+      stack=4, locals=0, args_size=0
+         0: new           #4                  // class com/example/candy/Sex
+         3: dup
+         4: ldc           #7                  // String MALE
+         6: iconst_0
+         7: invokespecial #8                  // Method "<init>":(Ljava/lang/String;I)V
+        10: putstatic     #9                  // Field MALE:Lcom/example/candy/Sex;
+        13: new           #4                  // class com/example/candy/Sex
+        16: dup
+        17: ldc           #10                 // String FEMALE
+        19: iconst_1
+        20: invokespecial #8                  // Method "<init>":(Ljava/lang/String;I)V
+        23: putstatic     #11                 // Field FEMALE:Lcom/example/candy/Sex;
+        26: iconst_2
+        27: anewarray     #4                  // class com/example/candy/Sex
+        30: dup
+        31: iconst_0
+        32: getstatic     #9                  // Field MALE:Lcom/example/candy/Sex;
+        35: aastore
+        36: dup
+        37: iconst_1
+        38: getstatic     #11                 // Field FEMALE:Lcom/example/candy/Sex;
+        41: aastore
+        42: putstatic     #1                  // Field $VALUES:[Lcom/example/candy/Sex;
+        45: return
+      LineNumberTable:
+        line 4: 0
+        line 5: 13
+        line 3: 26
+}
+Signature: #29             
+```
+
+
+
+
+
+
+
+
+
+### 3.9  try-with-resources
+
+JDK1.7 新增了对需要关闭的资源处理的特殊语法try-with-resources
+
+```java
+try(资源变量 = 创建资源对象){
+
+}catch(){
+
+}
+```
+
+- 其中资源对象需要实现AutoCloseable接口，例如 InputStream  OutputStream 等接口都实现了AutoCloseable，使用try-with-resources可以不用写finally语句块，编译器会帮助生成关闭资源代码，例如：
+
+- ```java
+  public class Candy7 {
+      public Candy7() {
+      }
+  
+      public static void main(String[] var0) {
+          try {
+              FileInputStream var1 = new FileInputStream("D:\\新建文件夹\\a.txt");
+              Throwable var2 = null;
+  
+              try {
+                  System.out.println(var1);
+              } catch (Throwable var12) {
+                  var2 = var12;
+                  throw var12;
+              } finally {     //可以看到在编译期间编译器自动生成了用于关流的finally代码块
+                  if (var1 != null) {   //判断资源不为空
+                      if (var2 != null) {     //如果有异常
+                          try {
+                              var1.close();
+                          } catch (Throwable var11) {
+                              //如果close出现异常，作为被压制异常添加
+                              var2.addSuppressed(var11);
+                          }
+                      } else {
+                          var1.close();  //关闭资源
+                      }
+                  }
+  
+              }
+  
+          } catch (IOException var14) {
+              throw new RuntimeException(var14);
+          }
+      }
+  }
+  ```
+
+  
+
+
+
+### 3.10   方法重写时的桥接方法
+
+**我们都知道，方法重写时分为两种情况：**
+
+- 父类子类返回值完全一致
+
+- 子类返回值可以是父类返回值的子类
+
+- ```java
+  public class Candy8 {
+  
+      public Number m(){
+          return 1;
+      }
+  }
+  
+  class b extends Candy8{
+      @Override
+      public Integer m() {
+          return 1;
+      }
+  ```
+
+  ![image-20230303150331124](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230303150331124.png)
+
+
+
+
+
+
+
+
+
+### 3.11   匿名内部类
+
+**源代码**
+
+```java
+public class Candy9 {
+    public static void main(String[] args) {
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("ok");
+            }
+        };
+    }
+}
+```
+
+
+
+**编译后的文件**
+
+- ```java
+  //会额外生成类 
+  final class Candy9$1 implements Runnable {
+      Candy9$1() {
+      }
+  
+      public void run() {
+          System.out.println("ok");
+      }
+  }
+  ```
+
+- 外部的类事实上使用了新生成的类
+
+
+
+**如果方法有传入的参数**
+
+```java
+public class Candy10 {
+    public static void test(final int x) {
+       Runnable r = new Runnable() {
+           @Override
+           public void run() {
+               System.out.println("ok"+x);
+           }
+       };
+    }
+}
+```
+
+**生成的类**
+
+```java
+package com.example.candy;
+ //会多一个参数
+final class Candy10$1 implements Runnable {
+    Candy10$1(int var1) {
+        this.val$x = var1;
+    }
+
+    public void run() {
+        System.out.println("ok" + this.val$x);
+    }
+}
+```
+
+注意
+
+  这同时解释了为什么匿名内部类引用局部变量时，局部变量必须是final的；因为在创建时Candy10$1对喜爱那个是，将x的值赋给了Candy10$1对象的valx属性，所以x不应该在发生变化了，如果变化，那么valx属性没有机会再跟着一起变化
+
+
+
+
+
+
+
+
+
+
+
+## 4   类加载阶段
+
+
+
+### 4.1 加载
+
+- 将类的字节码载入方法区中，内部采用c++的instanceKlass描述java类，它的重要filed有：
+  - _java_mirror即java类的镜像，例如对String来说，就是String.class，作用是吧Klass暴露给java使用
+  - _super即父类
+  - _constants即常量池
+  - _class_loader即类加载器
+  - _vtable虚方法表
+  - _itable接口方法表
+- 如果这个类的父类还没有加载完成，先加载父类
+- 加载和链接肯能是交替运行的
+
+------
+
