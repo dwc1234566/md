@@ -477,7 +477,7 @@ Bean 的生命周期概括起来就是 **4 个阶段**：
 
 对象头又可以分为两块内容：
 
-第一部分用于存储对象自身的运行时数据，如0偏向线程ID、偏向时间戳等，这部分数据的长度在32位和64位的虚拟机中分别位32bit和64bit，官方称它为 Mark Word，这部分在32位虚拟机占用4个字节，在64位虚拟机占用**8个字节** 因为对象头信息是与对象自身定义的数据无关的额外存储成本，考虑到虚拟机的空间效率，Mark Word 被设计成为一个非固定的数据结构，以便在极小的空间内存储尽量多的信息，它会根据对象的状态复用自己的存储空间。也就是说，Mark Word会随着程序的运行发生变化，变化状态如下
+第一部分用于**存储对象自身的运行时数据，如0偏向线程ID、偏向时间戳等，**这部分数据的长度在32位和64位的虚拟机中分别位32bit和64bit，官方称它为 Mark Word，这部分在32位虚拟机占用4个字节，在64位虚拟机占用**8个字节** 因为对象头信息是与对象自身定义的数据无关的额外存储成本，考虑到虚拟机的空间效率，Mark Word 被设计成为一个非固定的数据结构，以便在极小的空间内存储尽量多的信息，它会根据对象的状态复用自己的存储空间。也就是说，Mark Word会随着程序的运行发生变化，变化状态如下
 
 32位虚拟机：
 
@@ -487,7 +487,7 @@ Bean 的生命周期概括起来就是 **4 个阶段**：
 
 ![](https://gitee.com/dwc12/image/raw/master/typoraImage/20200228170830806.png)
 
-对象头的另一部分是类型指针，指向它的类元数据的指针 Klass Pointer，用于判断对象属于哪个类的实例，默认开启压缩Klass Pointer占4个字节，不开启压缩的话占8个字节。另外，如果对像是一个**数组**，那在对象头中还必须有一块用于记录数组长度的数据，4个字节来记录数组的长度。因为虚拟机可以通过普通Java对象的元数据信息确定Java对象的大小，但是从数组的元数据中却无法确定数组的大小。所以默认情况下，**正常对象头的大小是12字节，数组情况下对象头的大小是16字节**
+对象头的另一部分是类型指针，指向它**的类元数据的指针 Klass Pointer，用于判断对象属于哪个类的实例**，默认开启压缩Klass Pointer占4个字节，不开启压缩的话占8个字节。另外，如果对像是一个**数组**，那在对象头中还必须有一块用于记录数组长度的数据，4个字节来记录数组的长度。因为虚拟机可以通过普通Java对象的元数据信息确定Java对象的大小，但是从数组的元数据中却无法确定数组的大小。所以默认情况下，**正常对象头的大小是12字节，数组情况下对象头的大小是16字节**
 
 
 ##### 2、实例数据
@@ -1197,3 +1197,45 @@ Spring将@Resource注解的name属性解析为bean的名字，type属性则解�
 - Major GC 发生在老年代的GC，清理老年区，经常会伴随至少一次Minor GC，比Minor GC慢10倍以上。
 
   
+
+
+
+
+
+# 38 distinct 和 group by有什么区别？
+
+**distinct 基本语法如下：**
+
+```mysql
+SELECT DISTINCT column_name,column_name FROM table_name;
+```
+
+
+
+**group by 基础语法如下：**
+
+```mysql
+SELECT column_name,column_name FROM table_name 
+WHERE column_name operator value 
+GROUP BY column_name
+```
+
+
+
+
+
+### 区别1：查询结果集不同
+
+当使用 distinct 去重时，查询结果集中只有去重列信息，如下图所示：![26b78ae9d315f60b4df23e745e5818d6.png](https://gitee.com/dwc12/image/raw/master/typoraImage/26b78ae9d315f60b4df23e745e5818d6.png)当你试图添加非去重字段（查询）时，SQL 会报错如下图所示：![4f7b310e8a6512cef082780b8f4cf199.png](https://img-blog.csdnimg.cn/img_convert/4f7b310e8a6512cef082780b8f4cf199.png)而使用 group by 排序可以查询一个或多个字段，如下图所示：![94f96c084ae07aab58840e4f4fdc1b6b.png](https://img-blog.csdnimg.cn/img_convert/94f96c084ae07aab58840e4f4fdc1b6b.png)
+
+### 区别2：使用业务场景不同
+
+统计去重之后的总数量需要使用 distinct，而统计分组明细，或在分组明细的基础上添加查询条件时，就得使用 group by 了。使用 distinct 统计某列去重之后的总数量：![4e882c7362cf90b63053738c3cdde696.png](https://img-blog.csdnimg.cn/img_convert/4e882c7362cf90b63053738c3cdde696.png)统计分组之后数量大于 2 的文章，就要使用 group by 了，如下图所示：![e38f3ca6e4f40386636e536c932c05a8.png](https://img-blog.csdnimg.cn/img_convert/e38f3ca6e4f40386636e536c932c05a8.png)
+
+### 区别3：性能不同
+
+如果去重的字段有索引，那么 group by 和 distinct 都可以使用索引，此情况它们的性能是相同的；而**当去重的字段没有索引时，distinct 的性能就会高于 group by，因为在 MySQL 8.0 之前，group by 有一个隐藏的功能会进行默认的排序，这样就会触发 filesort 从而导致查询性能降低。**
+
+## 总结
+
+大部分场景下 distinct 是特殊的 group by，但二者也有细微的区别，比如它们在查询结果集上、使用的具体业务场景上，以及性能上都是不同的。

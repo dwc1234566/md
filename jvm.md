@@ -2341,14 +2341,29 @@ final class Candy10$1 implements Runnable {
 ### 4.1 加载
 
 - 将类的字节码载入方法区中，内部采用c++的instanceKlass描述java类，它的重要filed有：
-  - _java_mirror即java类的镜像，例如对String来说，就是String.class，作用是吧Klass暴露给java使用
+  - _java_mirror即java类的镜像，例如对String来说，就是String.class，作用是吧Klass暴露给java使用，存在于堆中
   - _super即父类
   - _constants即常量池
   - _class_loader即类加载器
   - _vtable虚方法表
   - _itable接口方法表
 - 如果这个类的父类还没有加载完成，先加载父类
-- 加载和链接肯能是交替运行的
+- 加载和链接可能是交替运行的
 
 ------
 
+![image-20230303194307269](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230303194307269.png)
+
+
+
+
+
+### 4.2 链接
+
+- **验证**：验证字节码文件是否符合JVM规范，安全性检查。
+- **准备** ：为static变量分配空间，设置默认值
+  - static变量存储与_java_mirror末尾
+  - static变量分配空间和赋值时两个步骤，分配空间在准备阶段完成，赋值在初始化阶段完成
+  - 如果static变量是final的基本类型，那么编译阶段就确定了，赋值在准备阶段完成
+  - 如果static变量是final的，但属于引用类型，那么赋值也会在初始化阶段完成
+- **解析：**
