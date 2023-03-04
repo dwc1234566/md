@@ -671,15 +671,138 @@ class Solution {
 
 
 
+# 11 用两个栈实现队列
+
+用两个栈实现一个队列。队列的声明如下，请实现它的两个函数 `appendTail` 和 `deleteHead` ，分别完成在队列尾部插入整数和在队列头部删除整数的功能。(若队列中没有元素，`deleteHead` 操作返回 -1 )
+
+ 
+
+**示例 1：**
+
+```
+输入：
+["CQueue","appendTail","deleteHead","deleteHead","deleteHead"]
+[[],[3],[],[],[]]
+输出：[null,null,3,-1,-1]
+```
+
+**示例 2：**
+
+```
+输入：
+["CQueue","deleteHead","appendTail","appendTail","deleteHead","deleteHead"]
+[[],[],[5],[2],[],[]]
+输出：[null,-1,null,null,5,2]
+```
+
+**提示：**
+
+- `1 <= values <= 10000`
+- 最多会对` appendTail、deleteHead `进行` 10000` 次调用
 
 
 
+```java
+class CQueue {
+
+    Deque<Integer> input;
+    Deque<Integer> output;
+
+
+    public CQueue() {
+        this.input = new LinkedList<>();
+        this.output = new LinkedList<>();
+    }
+
+    public void appendTail(int value) {
+          input.push(value);
+    }
+
+    public int deleteHead() {
+        if (!output.isEmpty()){
+            return output.pop();
+        }else {
+            while (!input.isEmpty()){
+                output.push(input.pop());
+            }
+            return output.isEmpty() ? -1 : output.pop();
+        }
+    }
+}
+
+```
 
 
 
+# 12   包含min函数的栈
+
+定义栈的数据结构，请在该类型中实现一个能够得到栈的最小元素的 min 函数在该栈中，调用 min、push 及 pop 的时间复杂度都是 O(1)。
+
+ 
+
+**示例:**
+
+```
+MinStack minStack = new MinStack();
+minStack.push(-2);
+minStack.push(0);
+minStack.push(-3);
+minStack.min();   --> 返回 -3.
+minStack.pop();
+minStack.top();      --> 返回 0.
+minStack.min();   --> 返回 -2.
+```
 
 
 
+**提示：**
+
+1. 各函数的调用总次数不超过 20000 次
+
+
+
+min可以用辅助栈
+
+```java
+class MinStack {
+
+    Stack<Integer> stack;
+    Stack<Integer>  min;
+    /** initialize your data structure here. */
+    public MinStack() {
+       this.stack = new Stack<>();
+       this.min = new Stack<>();
+       min.push(Integer.MAX_VALUE);
+    }
+
+    public void push(int x) {
+        stack.push(x);
+        min.push(Math.min(min.peek(),x));
+
+    }
+
+    public void pop() {
+        if (stack.isEmpty()){
+            return;
+        }else {
+            stack.pop();
+            min.pop();
+        }
+    }
+
+    public int top() {
+        if (stack.isEmpty()){
+            return 0;
+        }else {
+            return stack.peek();
+        }
+    }
+
+    public int min() {
+      return min.peek();
+    }
+}
+```
 
 
 

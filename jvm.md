@@ -2366,4 +2366,209 @@ final class Candy10$1 implements Runnable {
   - static变量分配空间和赋值时两个步骤，分配空间在准备阶段完成，赋值在初始化阶段完成
   - 如果static变量是final的基本类型，那么编译阶段就确定了，赋值在准备阶段完成
   - 如果static变量是final的，但属于引用类型，那么赋值也会在初始化阶段完成
-- **解析：**
+
+- **解析**
+
+  将常量池中的符号解析为直接引用 ，知道类属性方法的具体位置
+
+
+
+
+
+### 4.3 初始化
+
+
+
+**<cinit>()V方法**
+
+初始化即调用<cinit>()V，虚拟机会保证这个类的构造方法的线程安全
+
+
+
+
+
+
+
+**发生的时机**
+
+- 概括地说，**类初始化是懒惰的**
+
+- main方法所在的类，总是被首先初始化
+
+- 首次访问这个类的静态变量或者静态方法时
+
+- 子类初始化，如果父类没有初始化，会引发父类初始化
+
+- 子类访问父类静态变量，只会触发父类初始化
+
+- Class.forName
+
+- new 会导致初始化
+
+  **不会导致初始化的情况**
+
+- 访问类的static final静态常量（基本类型，字符串）时不会触发初始化
+- 类对象.class不会触发初始化
+- 创建该类的数组时不会触发初始化
+- 类加载器loadcass不会触发初始化
+- Class.forName第二个参数为false时不会触发
+
+
+
+### 4.5   练习
+
+**下面属性哪个会导致E的初始化**
+
+```java
+public class load1 {
+    public static void main(String[] args) {
+        System.out.println(E.a);
+        System.out.println(E.b);
+        System.out.println(E.c);
+        System.out.println(E.d);
+    }
+}
+class E{
+    public static final int a = 10;
+    public static final String b = "hello";
+    public static final Integer c = 20;
+    public static final String  d = new String("herrr");
+    static {
+        System.out.println("E INIT");
+    }
+}
+```
+
+- 答案是a，b不会导致初始化，c，d会导致初始化
+
+
+
+**典型应用：完成懒惰初始化单例模式**
+
+```java
+class Singleten{
+    private Singleten(){}
+
+    private static class LazyHolder{
+        private static final Singleten SINGLETEN = new Singleten();
+    }
+
+    public Singleten getInstance(){
+        return LazyHolder.SINGLETEN;
+    }
+}
+```
+
+- 以上的实现特点是
+- 懒惰实例化
+- 初始化时线程安全是有保障的
+
+
+
+
+
+## 5 类加载器
+
+**以JDK8为例**
+
+**名称**                                                      **加载哪些类**                                               **说明** 
+
+------
+
+Bootstrap  ClassLoader                    JAVA_home/jre/lib                             无法直接访问
+
+------
+
+Extension  ClassLoader                    JAVA_HOME/jre/lib/ext                      上级为Bootstrap  ，显示为null
+
+------
+
+Application ClassLoader                    classpath                                              上级为Extension  
+
+------
+
+自定义类加载器                                  自定义                                                      上级为Application 
+
+
+
+
+
+
+
+###                                             5.1 启动类加载器
+
+用Bootstrap  类加载器加载类
+
+```java
+
+public class F {
+    static {
+        System.out.println("f init");
+    }
+}
+
+```
+
+执行
+
+```java
+public class load3 {
+    public static void main(String[] args) throws ClassNotFoundException {
+        Class<?> aClass = Class.forName("com.example.load.F");
+        System.out.println(aClass.getClassLoader());   //appclassloader      extclassloader
+    }
+}
+```
+
+![image-20230304105157876](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230304105157876.png)
+
+
+
+
+
+
+
+###                                             5.2   扩展类加载器
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###                                                        5.3   双亲委派模式
+
