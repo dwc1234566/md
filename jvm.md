@@ -2572,3 +2572,513 @@ public class load3 {
 
 ###                                                        5.3   双亲委派模式
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 内存模型
+
+
+
+
+
+很多人将【java内存结构】和【java内存模型】分不清楚，java内存模型是JAVA Memory Model（JMM）的意思
+
+简单的来说JMM定义了一套在多线程读写共享数据时，对数据可见性，有序性，和原子性的规则和保障
+
+
+
+
+
+
+
+## 1     原子性
+
+  怎么保证多线程下对对共享变量的操作是原子性的呢
+
+
+
+我们可以使用synchronized（同步关键字）
+
+**语法**
+
+```java
+synchronzied (对象){
+   要作为原子操作的代码
+}
+```
+
+**用synchronized解决并发问题**
+
+```java
+   static int i = 0;
+    static Object o = new Object();
+
+    public static void main(String[] args) throws InterruptedException {
+        new Thread(() ->{
+            for (int i1 = 0; i1 < 5000; i1++) {
+                synchronized (o){
+                    i++;
+                }
+            }
+        }).start();
+        new Thread(() -> {
+            for (int i1 = 0; i1 < 4500; i1++) {
+                synchronized (o){
+                    i--;
+                }
+            }
+        }).start();
+        Thread.sleep(5000);
+        System.out.println(i);
+    }
+```
+
+、
+
+
+
+
+
+
+
+##                                           2   可见性
+
+
+
+
+
+
+
+###                                               2.1  退不出的循环
+
+**有下面一段代码**
+
+```java
+ static  boolean run = true;
+
+    public static void main(String[] args) throws InterruptedException {
+          Thread t = new Thread(()->{
+              while (run){
+
+              }
+          });
+
+          t.start();
+          Thread.sleep(1000);
+          run = false;
+    }
+```
+
+- 我们会发现这段代码是停不下来的，，，为什么呢？
+
+1. 初始状态，t线程从主存读取到了run的值存储在工作内存中
+2. ![](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230305145307636.png)
+3. 因为t线程频繁的从主存中获取值，JIT编译器会将run的值缓存至自己的工作内存中，减少对主存中run的访问，提高效率
+4. ![image-20230305145640343](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230305145640343.png)
+
+​     main线程修改了run的值但是t线程读的仍然是缓存中的值
+
+
+
+
+
+
+
+### 2.2   解决方法
+
+volatile关键字
+
+takeyi用来修饰成员变量和静态成员变量，它可以避免线程从自己的工作缓存中查找变量的值，必须到主存中获取它的值，线程操作volatile变量都是直接操作主存
+
+上述例子我们发现 run变量加上volatile之后，程序在一秒后退出
+
+
+
+
+
+### 2.3  volatile
+
+前面例子体现的就是可见性，他保证的是在多个线程之间，一个线程对volatil变量的修改对另一个线程不可见，不能保证原子性，仅用在一个写线程，多个读线程的情况：
+
+![image-20230305153523873](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230305153523873.png)
+
+
+
+**注意**
+
+synchronized关键字语句块既可以保证原子性，也可以保证代码块的变量的可见性。但缺点是，synchronized是属于重量级操作，性能相对较低
+
+如果前面例子死循环中加入system.out.println()会发现即使不加volatile修饰符，线程t也能看到run变量的修改，想一想为什么？
+
+
+
+因为println的底层是synchroinzed修饰的
+
+```java
+    public void println(boolean x) {
+        synchronized (this) {
+            print(x);
+            newLine();
+        }
+    }
+```
+
+
+
+
+
+
+
+## 3   有序性
+
+
+
+
+
+### 3.1   诡异的结果
+
+![image-20230305154311889](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230305154311889.png)
+
+
+
+**执行上面方法会有几种结果呢**
+
+![image-20230305154410844](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230305154410844.png)
+
+**为什么结果中会出现0呢？是因为num和ready的赋值顺序发生了改变， 这种现象叫做指令重排，是JIT编译器在运行时做的优化**
+
+
+
+
+
+
+
+### 3.2     解决方法
+
+可以用volatile关键字修饰该变量，就可以禁止指令重排。
+
+这体现了volatile的有序性
+
+
+
+
+
+
+
+### 3.3   有序性的理解
+
+
+
+
+
+
+
+同一个线程内，JVM在不影响正确性的前提下，可以调整语句的执行顺序，
+
+```java
+static int i;
+static int j;
+
+
+//在某个线程内执行如下赋值操作
+i = .....;   //较为耗时的操作
+j = ....;
+```
+
+可以看到无论是给 i赋值，还是先给 j赋值，对最终结果不会产生影响，所以上面的代码可能发生指令重排
+
+```java
+j = ....;
+i = .....;   //较为耗时的操作
+```
+
+这种特性称之为【指令重排】，多线程下【指令重排】会影响正确性，例如著名的double-checked locking模式实现单例
+
+```java
+    final class  SingleTon{
+        private SingleTon(){}
+        private static SingleTon INSTANCE =null;
+        public static SingleTon getInstance(){
+            //doucle-check 
+            if (INSTANCE == null){
+                synchronized (SingleTon.class){
+                         if (INSTANCE == null){
+                             INSTANCE = new SingleTon();
+                         }
+                }
+            }
+            return INSTANCE;
+        }
+        
+     }
+```
+
+以上的特点是：
+
+- 懒惰实例化
+- 首次调用getInstance时才使用synchronized加锁，后续使用无需加锁
+
+但在多线程环境下，上面代码是有问题的， INSTANCE = new SingleTon();对应的字节码为：
+
+```cmd
+        17: new           #3                  // class sssss/SingleTon
+        20: dup
+        21: invokespecial #4                  // Method "<init>":()V
+        24: putstatic     #2                  // Field INSTANCE:Lsssss/SingleTon;
+
+```
+
+其中21 和 24 代码时不固定的，也许jvm会优化为：先将引用地址赋值给INSTANCE变量后，在执行构造方法，如果两个线程t1，t2按如下时间顺序执行：
+
+![image-20230305161120662](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230305161120662.png)
+
+这是t1还未将构造方法执行完毕，那么t2拿到的将是一个未初始化完成的单例，虽然这种情况发生的概率很小，但是为了杜绝此类情况的发生我们可以用volatil修饰INSTANC变量
+
+
+
+
+
+
+
+### *3.4    happens-before*
+
+hhappens-before规定了哪些写操作对其他线程的读操作可见，它是可见性和有序性的一套规则总结：
+
+- 线程解锁m之前对变量的写，对于接下来对m加锁的其他线程变量的读可见
+
+```java
+static int x;
+static Object m = new Object();
+
+new Thread(() -> {
+   synchronized(m){
+      x = 10;
+   }
+
+},"t1").start();
+
+new Thread(() -> {
+   synchronized(m){
+       System.out.println(x);
+   }
+
+},"t1").start();
+
+```
+
+
+
+- 线程对volatile变量的写，对接下来线程对该变量的读可见
+
+- ```java
+  volatile static int x;
+  
+  new Thread(() -> {
+    x = 10;
+  },"t1").start();
+  
+  
+  new Thread(() -> {
+    System.out.println(x);
+  },"t2").start();
+  ```
+
+  
+
+- 线程start前对变量的写，对该线程开始后的读可见
+
+  ```java
+   static int x;
+    
+   x = 0;
+   
+   new Thread(() -> {
+    System.out.println(x);
+  },"t2").start();
+  ```
+
+- 线程结束前对变量的写，对其他线程得知他结束后的读可见
+
+```java
+ static int x;
+ Thread t1 = new Thread(() ->{
+     x = 10;
+ },"t1");
+ t1.start();
+ 
+ t1.join();
+ System.out.println(x);
+```
+
+- 线程t1打断t2（interrupt）前对变量的写，对于其他线程得知t2被打断后对变量的读可见
+
+![image-20230305162913958](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230305162913958.png)
+
+- 对变量默认值（0，false，null）的写，对其他线程可见
+- 具有传递性，如果 x  hb>y , y hb>z  则  x hb->z
+
+
+
+
+
+
+
+##                                   4   CAS与原子类
+
+
+
+###                                                 4.1  CAS
+
+CAS即Compare and Sweep，它体现的是一种乐观锁思想，比如多个线程对一个共享整型变量+1操作：
+
+```java
+//需要不断尝试
+while(true){
+   int 旧值 = 共享变量;   //比如拿到了当前值 0
+   int 结果 = 旧值+1;  
+  
+  if(compareAndSweep(旧值，结果)){
+     //成功 退出循环
+  }
+
+}
+```
+
+获取共享变量时，为了保证变量的可见性，需要使用volatile修饰。结合CAS和volatile可以实现无锁并发，适用于竞争激烈，多核CPU场景下：
+
+- 因为没有使用synchronized，所以线程不会陷入阻塞，这是效率提升的因素之一
+- 但如果竞争激烈，可能会引起频繁自旋，反而效率会受影响
+
+CAS依赖于一个unsafe类来调用操作系统底层的CAS指令，下面使用UnSafe对象进行线程安全保护的一个例子：
+
+```java
+class DataContainer{
+    private volatile int data;
+    static final Unsafe UNSAFE ;
+    static final long  DATA_OFFSET;
+    //初始化UNSAFE 和DATA_OFFSET
+    static {
+        try {
+            Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
+            theUnsafe.setAccessible(true);
+            UNSAFE= (Unsafe)theUnsafe.get(null);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+            //data属性在DataContainer中的偏移量，用于Unsafe直接访问该对象
+            DATA_OFFSET = UNSAFE.objectFieldOffset(DataContainer.class.getDeclaredField("data"));
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public DataContainer(int i) {
+        this.data = i;
+    }
+    public void increase(){
+        int oldValue;
+        while (true){
+            oldValue = data;
+            if (UNSAFE.compareAndSwapInt(this,DATA_OFFSET,oldValue,oldValue+1)){
+                return;
+            }
+
+        }
+    }
+    public void decrease(){
+        int oldValue;
+        while (true){
+            oldValue = data;
+            if (UNSAFE.compareAndSwapInt(this,DATA_OFFSET,oldValue,oldValue-1)){
+                return;
+            }
+        }
+    }
+
+    public int getData(){
+        return this.data;
+    }
+
+}
+```
+
+
+
+
+
+
+
+###                                                        4.2   乐观锁与悲观锁
+
+
+
+
+
+
+
+
+
+
+
+
+
+###                                                            4.3  原子操作类
+
+
+
+
+
+
+
+
+
+
+
+## 5   synchronized优化
+
+
+
+Java HotSpot虚拟机中，每个对象都有对象头（包含class指针和Mark  Word）。Mark Word 平时存储这个对象的   
+
+**哈希码、分代年龄、**，当加锁时，这些信息就根据情况被替换为**标记位、线程锁记录指针、重量级锁指针、线程id等内容**
+
+
+
+### 
+
+###                                         5.1 轻量级锁
+
+ 如果一个对象虽然有多线程访问，但多线程访问的时间是错开的，那么可以使用轻量级锁来优化。这就好比：
+

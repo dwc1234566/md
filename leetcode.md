@@ -738,8 +738,6 @@ class CQueue {
 
 定义栈的数据结构，请在该类型中实现一个能够得到栈的最小元素的 min 函数在该栈中，调用 min、push 及 pop 的时间复杂度都是 O(1)。
 
- 
-
 **示例:**
 
 ```
@@ -753,15 +751,11 @@ minStack.top();      --> 返回 0.
 minStack.min();   --> 返回 -2.
 ```
 
-
-
 **提示：**
 
 1. 各函数的调用总次数不超过 20000 次
 
-
-
-min可以用辅助栈
+**min可以用辅助栈**
 
 ```java
 class MinStack {
@@ -803,6 +797,249 @@ class MinStack {
     }
 }
 ```
+
+
+
+
+
+
+
+
+
+# 13  从尾到头打印链表
+
+输入一个链表的头节点，从尾到头反过来返回每个节点的值（用数组返回）。
+
+**示例 1：**
+
+```
+输入：head = [1,3,2]
+输出：[2,3,1]
+```
+
+ 
+
+**限制：**
+
+```
+0 <= 链表长度 <= 10000
+```
+
+
+
+**方法一**
+
+两次遍历链表，第一次获得链表长度，后面倒着往返回数组里面填入即可
+
+```java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode(int x) { val = x; }
+ * }
+ */
+class Solution {
+     public int[] reversePrint(ListNode head) {
+         int length = getLength(head);
+         int[] res = new int[length];
+         for (int i = length -1 ; i > -1; i--) {
+             res[i] = head.val;
+             head = head.next;
+         }
+         return res;
+     }
+     public int getLength(ListNode head){
+         int l = 0;
+         ListNode pre = new ListNode(0,head);
+         while (pre.next !=null){
+             l++;
+             pre = pre.next;
+         }
+         return l;
+     }
+
+}
+```
+
+**方法二递归法**
+
+```java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode(int x) { val = x; }
+ * }
+ */
+class Solution {
+    int len = 0;
+    int[] res;
+    public int[] reversePrint(ListNode head) {
+       if (head == null){
+           res = new int[len];       //递归到末尾首先 new一个新数组
+       }else {
+           len++;                   //不为空 len++
+           reversePrint(head.next);    //递归下一个节点
+           res[res.length - len--] = head.val;      //本节点放入数组，len减一
+       }
+       return res;
+     }
+
+}
+```
+
+
+
+
+
+
+
+# 14  反转链表
+
+定义一个函数，输入一个链表的头节点，反转该链表并输出反转后链表的头节点。
+
+ 
+
+**示例:**
+
+```
+输入: 1->2->3->4->5->NULL
+输出: 5->4->3->2->1->NULL
+```
+
+ 
+
+**限制：**
+
+```
+0 <= 节点个数 <= 5000
+```
+
+
+
+**双指针法**
+
+```java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode(int x) { val = x; }
+ * }
+ */
+class Solution {
+    public ListNode reverseList(ListNode head) {
+        ListNode cur = head, pre = null;
+        while(cur != null) {
+            ListNode tmp = cur.next; // 暂存后继节点 cur.next
+            cur.next = pre;          // 修改 next 引用指向
+            pre = cur;               // pre 暂存 cur
+            cur = tmp;               // cur 访问下一节点
+        }
+        return pre;
+    }
+}
+```
+
+
+
+
+
+
+
+# 15    复杂链表的复制
+
+请实现 `copyRandomList` 函数，复制一个复杂链表。在复杂链表中，每个节点除了有一个 `next` 指针指向下一个节点，还有一个 `random` 指针指向链表中的任意节点或者 `null`。
+
+ 
+
+**示例 1：**
+
+![img](https://assets.leetcode-cn.com/aliyun-lc-upload/uploads/2020/01/09/e1.png)
+
+```
+输入：head = [[7,null],[13,0],[11,4],[10,2],[1,0]]
+输出：[[7,null],[13,0],[11,4],[10,2],[1,0]]
+```
+
+**示例 2：**
+
+![img](https://gitee.com/dwc12/image/raw/master/typoraImage/e2.png)
+
+```
+输入：head = [[1,1],[2,1]]
+输出：[[1,1],[2,1]]
+```
+
+**示例 3：**
+
+**![img](https://assets.leetcode-cn.com/aliyun-lc-upload/uploads/2020/01/09/e3.png)**
+
+```
+输入：head = [[3,null],[3,0],[3,null]]
+输出：[[3,null],[3,0],[3,null]]
+```
+
+**示例 4：**
+
+```
+输入：head = []
+输出：[]
+解释：给定的链表为空（空指针），因此返回 null。
+```
+
+ 
+
+**提示：**
+
+- `-10000 <= Node.val <= 10000`
+- `Node.random` 为空（null）或指向链表中的节点。
+- 节点数目不超过 1000 。
+
+**哈希表法**
+
+```java
+/*
+// Definition for a Node.
+class Node {
+    int val;
+    Node next;
+    Node random;
+
+    public Node(int val) {
+        this.val = val;
+        this.next = null;
+        this.random = null;
+    }
+}
+*/
+class Solution {
+    public Node copyRandomList(Node head) {
+       if (head == null) {
+            return head;
+        }
+     //map中存的是(原节点，拷贝节点)的一个映射
+        Map<Node, Node> map = new HashMap<>();
+        for (Node cur = head; cur != null; cur = cur.next) {
+            map.put(cur, new Node(cur.val));
+        }
+        //将拷贝的新的节点组织成一个链表
+        for (Node cur = head; cur != null; cur = cur.next) {
+            map.get(cur).next = map.get(cur.next);
+            map.get(cur).random = map.get(cur.random);
+        }
+        return map.get(head);
+    }
+}
+```
+
+
+
+
 
 
 
