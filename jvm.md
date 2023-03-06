@@ -3082,3 +3082,23 @@ Java HotSpot虚拟机中，每个对象都有对象头（包含class指针和Mar
 
  如果一个对象虽然有多线程访问，但多线程访问的时间是错开的，那么可以使用轻量级锁来优化。这就好比：
 
+![image-20230306104340530](https://gitee.com/dwc12/image/raw/master/typoraImage/image-20230306104340530.png)
+
+假设有两个同步代码块，利用同一个对象加锁：
+
+```java
+static Object obj = new Object();
+public static void method1(){
+    synchronized(obj){
+       method()2;
+    }
+}
+
+
+public static void method2(){
+    synchronized(obj){
+      
+    }
+}
+```
+
