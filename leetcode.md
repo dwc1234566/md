@@ -1111,23 +1111,172 @@ class Solution {
 
 
 
+# 18 数组中重复的数字
+
+找出数组中重复的数字。
+
+
+在一个长度为 n 的数组 nums 里的所有数字都在 0～n-1 的范围内。数组中某些数字是重复的，但不知道有几个数字重复了，也不知道每个数字重复了几次。请找出数组中任意一个重复的数字。
+
+**示例 1：**
+
+```
+输入：
+[2, 3, 1, 0, 2, 5, 3]
+输出：2 或 3 
+```
 
 
 
+**方法一   哈希法**
+
+出现多次在对应的位置加一
+
+```java
+class Solution {
+    public int findRepeatNumber(int[] nums) {
+        int[] arr =new int[nums.length];
+        for(int i = 0 ; i <arr.length;i++){
+            arr[nums[i]]++;
+            if(arr[nums[i]] > 1)   return nums[i];
+        }
+        return -1;
+    }
+}
+```
+
+**排序法**
+
+```java
+class Solution {
+    public int findRepeatNumber(int[] nums) {
+       Arrays.sort(nums);
+       for(int i = 0 ;i< nums.length;i++){
+           if(nums[i] == nums[i+1]){
+               return nums[i];
+           }
+       }
+       return -1;
+    }
+}
+```
 
 
 
+# 19  在排序数组中查找数字 I
+
+统计一个数字在排序数组中出现的次数。
+
+ 
+
+**示例 1:**
+
+```
+输入: nums = [5,7,7,8,8,10], target = 8
+输出: 2
+```
+
+**示例 2:**
+
+```
+输入: nums = [5,7,7,8,8,10], target = 6
+输出: 0
+```
 
 
 
+**暴力查找**
+
+```java
+class Solution {
+    public int search(int[] nums, int target) {
+         int res = 0;
+         for(int i = 0; i < nums.length ; i++){
+             if(nums[i] == target){
+                 res++;
+             }
+             if(i < nums.length-1 && nums[i+1] != nums[i] && res >0){  
+                 break;
+             }
+         }
+         return res;
+    }
+}
+```
+
+**二分查找**
+
+```java
+class Solution {
+    public int search(int[] nums, int target) {
+        int leftIdx = binarySearch(nums, target, true);   //查找第一次出现target的下标
+        int rightIdx = binarySearch(nums, target, false) - 1;   //查找最后一次出现target的下标
+        if (leftIdx <= rightIdx && rightIdx < nums.length && nums[leftIdx] == target && nums[rightIdx] == target) {
+            return rightIdx - leftIdx + 1;
+        } 
+        return 0;
+    }
+
+    public int binarySearch(int[] nums, int target, boolean lower) {
+        int left = 0, right = nums.length - 1, ans = nums.length;
+        while (left <= right) {
+            int mid = (left + right) / 2;
+            if (nums[mid] > target || (lower && nums[mid] >= target)) {
+                right = mid - 1;
+                ans = mid;
+            } else {
+                left = mid + 1;
+            }
+        }
+        return ans;
+    }
+}
+
+```
 
 
 
+# 20  0～n-1中缺失的数字
+
+一个长度为n-1的递增排序数组中的所有数字都是唯一的，并且每个数字都在范围0～n-1之内。在范围0～n-1内的n个数字中有且只有一个数字不在该数组中，请找出这个数字。
+
+ 
+
+**示例 1:**
+
+```
+输入: [0,1,3]
+输出: 2
+```
+
+**示例 2:**
+
+```
+输入: [0,1,2,3,4,5,6,7,9]
+输出: 8
+```
 
 
 
+**二分查找**
 
-
+```java
+class Solution {
+   public int missingNumber(int[] nums) {
+       int l = 0;
+       int r = nums.length - 1;
+       while(l <= r){            
+           int mid = l + (r - l) / 2;
+           if(nums[mid] == mid){    //如果等于说明前面还没有发生错位
+               l = mid + 1;  
+           }else{                      //如果没有则前面已经发生错位了
+               r = mid - 1;
+           }
+       }
+       return l;
+   }
+}
+```
 
 
 

@@ -1277,3 +1277,21 @@ public synchronized void mehtodB() throws Exception{
 Java偏向锁(Biased Locking)是指它会偏向于第一个访问锁的线程，如果在运行过程中，只有一个线程访问加锁的资源，不存在多线程竞争的情况，那么线程是不需要重复获取锁的，这种情况下，就会给线程加一个偏向锁。
 
 偏向锁的实现是通过控制对象Mark Word的标志位来实现的，如果当前是可偏向状态，需要进一步判断对象头存储的线程 ID 是否与当前线程 ID 一致，如果一致直接进入。
+
+
+
+
+
+
+
+# 40  很多人都说要慎用 ThreadLocal，谈谈你的理解，使用 ThreadLocal 需要注意些什么？
+
+ThreadLocal 变量解决了多线程环境下单个线程中变量的共享问题，使用名为ThreadLocalMap的哈希表进行维护（key为ThreadLocal变量名，value为ThreadLocal变量的值）；
+
+使用时需要注意以下几点：
+
+- 线程之间的threadLocal变量是互不影响的，
+- 使用private final static进行修饰，防止多实例时内存的泄露问题
+- 线程池环境下使用后将threadLocal变量remove掉或设置成一个初始值
+
+
