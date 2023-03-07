@@ -1239,3 +1239,41 @@ GROUP BY column_name
 ## 总结
 
 大部分场景下 distinct 是特殊的 group by，但二者也有细微的区别，比如它们在查询结果集上、使用的具体业务场景上，以及性能上都是不同的。
+
+
+
+
+
+
+
+# 39     偏向锁和可重入锁
+
+**可重入锁**
+
+`可重入锁`又称之为`递归锁`，是指同一个线程在外层方法获取了锁，在进入内层方法会自动获取锁。
+
+对于Java ReentrantLock而言, 他的名字就可以看出是一个可重入锁。对于Synchronized而言，也是一个可重入锁。
+
+敲黑板：可重入锁的一个好处是可一定程度避免死锁。
+
+以 synchronized 为例，看一下下面的代码：
+
+```java
+public synchronized void mehtodA() throws Exception{
+ // Do some magic tings
+ mehtodB();
+}
+
+public synchronized void mehtodB() throws Exception{
+ // Do some magic tings
+}
+```
+
+上面的代码中 methodA 调用 methodB，如果一个线程调用methodA 已经获取了锁再去调用 methodB 就不需要再次获取锁了，这就是可重入锁的特性。如果不是可重入锁的话，mehtodB 可能不会被当前线程执行，可能造成死锁。
+
+
+**偏向锁**
+
+Java偏向锁(Biased Locking)是指它会偏向于第一个访问锁的线程，如果在运行过程中，只有一个线程访问加锁的资源，不存在多线程竞争的情况，那么线程是不需要重复获取锁的，这种情况下，就会给线程加一个偏向锁。
+
+偏向锁的实现是通过控制对象Mark Word的标志位来实现的，如果当前是可偏向状态，需要进一步判断对象头存储的线程 ID 是否与当前线程 ID 一致，如果一致直接进入。
