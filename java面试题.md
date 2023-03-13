@@ -1308,3 +1308,123 @@ ThreadLocal 变量解决了多线程环境下单个线程中变量的共享问�
 
 **是不可以继承的**
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 42  juc对原子类有优化，一个叫longadder的，了解吗？
+
+**1 原子类的加强**
+JDK1.8的时候，新增了四个原子类：
+
+- LongAdder：long类型的数值累加器，从0开始累加，累加规则为加法运算。
+- LongAccumulator：long类型的数值累加器，可从指定值开始累加，可指定累加规则。
+- DoubleAdder：double类型的数值累加器，从0开始累加，累加规则为加法运算。
+- DoubleAccumulator：double类型的数值累加器，可从指定值开始累加，可指定累加规则。
+
+
+
+
+
+1. 自从原子类问世之后，多线程环境下如果用于统计计数操作，一般可以使用AtomicLong来代替锁作为计数器，AtomicLong 通过CAS 提供了非阻塞的原子性操作，相比使用阻塞算法的同步器来说它的性能己经很好了，那么，它们有什么缺点吗？
+2. 实际上，AtomicLong等其他传统的atomic原子类对于数值的更改，通常都是在一个无限循环（自旋）中不断尝试CAS 的修改操作，一旦CAS失败则循环重试，这样来保证最终CAS操作成功。如果竞争不激烈，那么修改成功的概率就很高，但是如果在高并发下大量线程频繁的竞争修改计数器，会造成一次CAS修改失败的概率就很高。在大量修改失败时，这些原子操作就会进行多次循环尝试，白白浪费CPU 资源，因此性能还是会受到影响。
+
+3. JDK1.8新增这些类，正是为了解决高并发环境下由于频繁读写AtomicLong等计数器而可能造成某些线程持续的空转（循环）进而浪费CPU的情况，它们也被称为“累加器”！
+   
+
+**2 LongAdder**
+
+LongAdder的解决方式是采用了“热点数据分离”的基本思想：
+传统的原子类的内部通常维护了一个对应类型的value属性值，多个线程之间的CAS竞争实际上就是在争夺对这个value属性的更新权，但是CAS操作只会保证同时只有一个线程能够更新成功，因此AtomicLong（包括其他传统原子类）的性能瓶颈就是由于过多线程同时去竞争一个变量的更新而产生的，那么如果把一个变量分解为多个变量，让同样多的线程去竞争多个资源，最终的结果就是统计被分解出来的多个变量的总和，这样就能大大缓解多线程竞争导致的性能问题，这就是“热点数据分离”的基本思想。这种思想在高并发环境下非常有用，类似的还有“减小锁的粒度”的思想，除了新的原子类之外，在JDK1.8的ConcurrentHashMap中对于结点数量的统计并没有采用单个变量计数，也是采用的类似于LongAdder的“热点数据分离”的基本思想。
+
+![在这里插入图片描述](https://gitee.com/dwc12/image/raw/master/typoraImage/2020080915181989.png)
+
+
+
+
+
+```java
+//Striped64中的属性
+
+/**
+ * 用来实现CAS锁的资源，值为0时表示没有锁，值为1时表示已上锁，扩容Cell 数组或者初始化Cell 数组时会使用到该值
+ * 使用CAS的同时唯一成功性来保证同一时刻只有一条线程可以进入扩容Cell 数组或者初始化Cell 数组的代码
+ */
+transient volatile int cellsBusy;
+
+/**
+ * volatile long 类型的基本属性，在没有CAS竞争时用来统计计数
+ */
+transient volatile long base;
+
+/**
+ * volatile Cell类型的数组，要么为null，当发生CAS更新base出现竞争的时候初始化
+ * 此后就一直使用该数组来统计计数，初始容量为2，数组可扩容，大小为2的幂次方
+ */
+transient volatile Striped64.Cell[] cells;
+
+/**
+ 1. ccells数组的元素类型，由于是数组，导致内存连续，因此可以使用缓存填充(注解方式)来避免伪共享。
+ */
+@sun.misc.Contended
+static final class Cell {
+    /**
+     * 内部就是一个volatile long类型的基本属性，线程对数组某个索引位置的更新实际上就是更新该值
+     */
+    volatile long value;
+
+    Cell(long x) {
+        value = x;
+    }
+
+    /**
+     * 更新value指的CAS方法
+     *
+     * @param cmp 预期值
+     * @param val 新值
+     * @return true 成功  false 失败
+     */
+    final boolean cas(long cmp, long val) {
+        return UNSAFE.compareAndSwapLong(this, valueOffset, cmp, val);
+    }
+
+    //对于数值的更新都是CAS的操作
+
+    private static final sun.misc.Unsafe UNSAFE;
+    private static final long valueOffset;
+
+    static {
+        try {
+            UNSAFE = sun.misc.Unsafe.getUnsafe();
+            Class<?> ak = Striped64.Cell.class;
+            valueOffset = UNSAFE.objectFieldOffset
+                    (ak.getDeclaredField("value"));
+        } catch (Exception e) {
+            throw new Error(e);
+        }
+    }
+}
+
+```
+
+
+
+LongAdder类继承自Striped64类，Striped64被设计用来减少高并发环境的线程冲突，Striped64类是对外不可见的，也是这四个累加器类的公共抽象父类，它们很多的操作也是直接调用Striped64的方法，在Striped64 内部维护着三个主要的变量：
+
+1. cellsBusy ：用来实现简单的CAS锁，状态值只有0和l，当创建Cell 元素，扩容Cell 数组或者初始化Cell 数组时，使用CAS 操作该变量来保证同时只有一个线程可以进行其中之一的操作。
+2. base：volatile int类型的一个基本属性，热点分离的实现之一，在没有存在并发CAS操作的时候记录被用于记录累加值，也用来记录初始值。
+3. cells：volatile Cell[ ] 类型的一个对象数组，热点分离的实现之二，当使用CAS更新base基值失败（出现CAS竞争）的时候，就会初始化该数组，然后尝试通过更新该数组中的某个位置的值来记录累加值。
+
+**由此我们可以明确的知道，LongAdder的热点分离思想的具体实现是将value分散为一个base变量+一个cells数组。**
